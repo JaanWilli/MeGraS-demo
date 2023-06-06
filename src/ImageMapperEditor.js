@@ -5,6 +5,8 @@ import Button from '@mui/material/Button';
 import { ReactPainter } from 'react-painter';
 import CanvasDraw from "react-canvas-draw";
 import { Input } from '@mui/material';
+import { UPNG } from './UPNG';
+
 
 function ImageMapperEditor({ image }) {
     const elementRef = React.useRef(null);
@@ -70,13 +72,15 @@ function ImageMapperEditor({ image }) {
         }
     }
 
-    function confirm() {
+    async function confirm() {
         var url;
         if (mode === "freehand") {
-            var base64 = canvas.getDataURL(".png", false)
-            base64 = base64.replace("data:image/png;base64,", "").replace(/\+/g, '-').replace(/\//g, '_')
-
-            console.log(base64)
+            let context = canvas.canvas.drawing.getContext("2d")
+            let data = context.getImageData(0,0,width,height).data
+            
+            let png = UPNG.encode([data.buffer], width, height, 2)
+            let base64 = await arraybufferToBase64(png)
+            
             url = image + "/segment/mask/" + base64
         } else if (shape.dim !== undefined) {
             console.log(shape.dim)
@@ -100,15 +104,15 @@ function ImageMapperEditor({ image }) {
             .catch(e => console.log(e))
     }
 
-    const blobToBase64 = blob => {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        return new Promise(resolve => {
-            reader.onloadend = () => {
-                resolve(reader.result);
-            };
-        });
-    };
+    const arraybufferToBase64 = async (data) => {
+        const base64url = await new Promise((r) => {
+            const reader = new FileReader()
+            reader.onload = () => r(reader.result)
+            reader.readAsDataURL(new Blob([data]))
+        })
+
+        return base64url.substring(base64url.indexOf(',') + 1).replace(/\+/g, '-').replace(/\//g, '_')
+    }
 
     return (
         <>
