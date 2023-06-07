@@ -1,64 +1,25 @@
-import { CircularProgress } from '@mui/material';
-import './App.css';
-import ImageMapperEditor from './ImageMapperEditor';
+import { Routes, Route, Link } from 'react-router-dom';
 import React from 'react';
-import ImageUploading from 'react-images-uploading';
+import './App.css';
+import Library from './Library';
+import ImageUpload from './ImageUpload'
+import { Button } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 
 
-function App() {
-  const [imageURI, setImageURI] = React.useState();
-  const [loading, setLoading] = React.useState(false);
-
-  const onChange = (imageList, addUpdateIndex) => {
-    setLoading(true)
-
-    console.log(imageList, addUpdateIndex);
-
-    var data = new FormData()
-    data.append("file", imageList[0]["file"])
-    const filename = imageList[0]["file"]["name"]
-
-    fetch("http://localhost:8080/add/file", { method: 'POST', body: data })
-      .then(response => response.json())
-      .then(data => {
-        setImageURI("http://localhost:8080/" + data[filename]["uri"]);
-        setLoading(false)
-        console.log(data[filename]["uri"])
-      }
-      )
-      .catch(e => console.log(e))
-  };
+const App = () => {
 
   return (
-    <div className="App">
-      <header className="App-header">
-        {imageURI == undefined ?
-          <ImageUploading
-            onChange={onChange}
-            maxNumber={1}
-            dataURLKey="data_url"
-          >
-            {({
-              onImageUpload,
-              isDragging,
-              dragProps,
-            }) => (
-              // write your building UI
-              <div className="upload__image-wrapper">
-                <button
-                  style={isDragging ? { color: 'red' } : undefined}
-                  onClick={onImageUpload}
-                  {...dragProps}
-                >
-                  Click or Drop here
-                </button>
-              </div>
-            )}
-          </ImageUploading> :
-          <ImageMapperEditor image={imageURI} />
-        }
-        {loading ? <CircularProgress /> : null}
-      </header>
+    <div class="App">
+      <div class="App-header">
+        <Button sx={{margin: '20px'}} variant='contained'><Link to="/"><HomeIcon /></Link></Button>
+        <Button sx={{margin: '20px'}} variant='contained'><Link to="/add"><AddPhotoAlternateIcon /></Link></Button>
+      </div>
+      <Routes>
+        <Route path="/" element={<Library />} />
+        <Route path="/add" element={<ImageUpload />} />
+      </Routes>
     </div>
   );
 }
