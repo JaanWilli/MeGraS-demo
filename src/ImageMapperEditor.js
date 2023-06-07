@@ -2,18 +2,18 @@ import { editor } from '@overlapmedia/imagemapper';
 import React from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import { ReactPainter } from 'react-painter';
-import CanvasDraw from "react-canvas-draw";
+import { ReactSketchCanvas } from "react-sketch-canvas";
 import { Input } from '@mui/material';
 import { UPNG } from './UPNG';
 
 
 function ImageMapperEditor({ image }) {
     const elementRef = React.useRef(null);
+    const canvas = React.createRef();
+
     const [myEditor, setMyEditor] = React.useState();
     const [shape, setShape] = React.useState();
     const [mode, setMode] = React.useState("select");
-    const [canvas, setCanvas] = React.useState();
     const [brushRadius, setBrushRadius] = React.useState(20);
 
     const [width, setWidth] = React.useState(0);
@@ -68,17 +68,20 @@ function ImageMapperEditor({ image }) {
             }
         }
         if (mode === "freehand") {
-            canvas.clear()
+            canvas.current.clearCanvas()
         }
     }
 
     async function confirm() {
         var url;
         if (mode === "freehand") {
-            let context = canvas.canvas.drawing.getContext("2d")
-            let data = context.getImageData(0,0,width,height).data
-            
-            let png = UPNG.encode([data.buffer], width, height, 2)
+            let data = await canvas.current.exportImage("png")
+            let response = await fetch(data)
+            let buffer = await response.arrayBuffer()
+
+            const rgba8Img = UPNG.toRGBA8(UPNG.decode(buffer));
+            let png = UPNG.encode(rgba8Img, width, height, 2)
+
             let base64 = await arraybufferToBase64(png)
             
             url = image + "/segment/mask/" + base64
@@ -117,16 +120,14 @@ function ImageMapperEditor({ image }) {
     return (
         <>
             {mode === "freehand" ?
-                <CanvasDraw
-                    ref={canvasDraw => (setCanvas(canvasDraw))}
+                <ReactSketchCanvas
+                    ref={canvas}
                     style={{ position: 'absolute' }}
-                    canvasWidth={width}
-                    canvasHeight={height}
-                    hideGrid
-                    hideInterface
-                    imgSrc={image}
-                    brushColor='#FFF'
-                    brushRadius={brushRadius}
+                    width={width}
+                    height={height}
+                    strokeColor='white'
+                    backgroundImage={image}
+                    strokeWidth={brushRadius}
                 /> : null}
             <svg
                 ref={elementRef}
