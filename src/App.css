@@ -1,6 +1,5 @@
 .App {
   text-align: center;
-  background-color: #282c34;
   display: block;
 }
 
@@ -22,7 +21,6 @@
   align-items: center;
   justify-content: space-evenly;
   font-size: calc(10px + 2vmin);
-  color: white;
 }
 
 .App-subtitle {
@@ -37,7 +35,6 @@
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 1vmin);
-  color: white;
 }
 
 .App-button {

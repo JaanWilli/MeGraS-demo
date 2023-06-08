@@ -120,7 +120,7 @@ const CocoImporter = () => {
                                 {imageList.length > 0 &&
                                     <Stack spacing={2} direction="row" justifyContent="center">
                                         <Button variant='contained' onClick={() => onImageRemoveAll()} startIcon={<DeleteIcon />}>Remove all</Button>
-                                        <Button variant='contained' onClick={() => confirm()} startIcon={<CheckBoxIcon />}>Confirm Selection</Button>
+                                        <Button variant='contained' color='secondary' onClick={() => confirm()} startIcon={<CheckBoxIcon />}>Confirm Selection</Button>
                                     </Stack>
                                 }
                                 <br />

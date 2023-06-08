@@ -69,8 +69,10 @@ const ImageUpload = () => {
                                         </Button>
                                         <Box sx={{ m: 1 }}>or</Box>
                                         <Box
+                                        m={2}
+                                        p={5}
                                             width='20vw'
-                                            sx={{ m: 2, p: 5, border: '2px dashed grey', borderRadius: '10px', color: isDragging ? '#1565C0' : 'white' }}
+                                            sx={{ border: '2px dashed #444d4e', borderRadius: '10px', color: isDragging ? '#37d2c6' : '' }}
                                             {...dragProps}
                                         >Drop file here</Box>
 

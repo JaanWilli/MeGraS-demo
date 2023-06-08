@@ -1,4 +1,4 @@
-import { Button, CircularProgress, Grid, IconButton } from "@mui/material";
+import { Box, Button, Card, CircularProgress, Grid, IconButton, Paper, Stack } from "@mui/material";
 import React from "react";
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from "react-router";
@@ -29,7 +29,7 @@ const Library = () => {
                 let mediaArray = data.results.map(d => d.s.replace("<", "").replace(">", ""))
                 setMedia(mediaArray)
                 let grouped = mediaArray.reduce((r, e, i) =>
-                    (i % 4 ? r[r.length - 1].push(e) : r.push([e])) && r
+                    (i % 6 ? r[r.length - 1].push(e) : r.push([e])) && r
                     , [])
                 console.log(grouped)
                 setGroupedMedia(grouped)
@@ -67,12 +67,13 @@ const Library = () => {
     }
 
     const addSegment =
-        <Button
-            onClick={() => navigate("/segment/" + selected.replace("http://localhost:8080/", ""))}
-            sx={{ color: 'white' }}
-        >
-            <AddIcon /> Add
-        </Button>
+        <Grid container justifyContent="center" alignItems="center" sx={{ backgroundColor: 'background.paper', height: '12vh' }}>
+            <Button variant="contained" color="secondary"
+                onClick={() => navigate("/segment/" + selected.replace("http://localhost:8080/", ""))}
+            >
+                <AddIcon /> Add
+            </Button>
+        </Grid>
 
     return (
         <>
@@ -95,33 +96,41 @@ const Library = () => {
                             if (segments.length == 0) {
                                 subgrid =
                                     <Grid
-                                        item xs={12}
+                                        container
+                                        ml={2}
+                                        mt={2}
+                                        pr={2}
+                                        spacing={2}
                                         justifyContent='center'
                                         alignItems='center'
-                                        margin={2}
-                                        paddingBottom={2}
-                                        style={{ backgroundColor: '#6a6d75', borderRadius: 30 }}
+                                        sx={{ backgroundColor: 'primary.light' }}
                                     >
-                                        {addSegment}
+                                        <Grid item xs={2} pb={2} >
+                                            {addSegment}
+                                        </Grid>
                                     </Grid>
                             } else {
                                 subgrid =
                                     <Grid
                                         container
-                                        margin={2}
+                                        ml={2}
+                                        mt={2}
+                                        pr={2}
                                         spacing={2}
                                         justifyContent='center'
                                         alignItems='center'
-                                        style={{ backgroundColor: '#6a6d75', borderRadius: 30 }}
+                                        sx={{ backgroundColor: 'primary.light', }}
                                     >
                                         {segments.map((s, si) => (
-                                            <Grid item xs={3}>
-                                                <a href={s} target="_blank">
-                                                    <img src={s + "/preview"} key={si} height='120vh' width='120vw' style={{objectFit: 'scale-down'}} />
-                                                </a>
+                                            <Grid item xs={2} pb={2}>
+                                                <Paper sx={{ height: '12vh' }}>
+                                                    <a href={s} target="_blank">
+                                                        <img src={s + "/preview"} key={si} height='100%' width='100%' style={{ objectFit: 'scale-down' }} />
+                                                    </a>
+                                                </Paper>
                                             </Grid>
                                         ))}
-                                        <Grid item xs={3}>
+                                        <Grid item xs={2} pb={2} >
                                             {addSegment}
                                         </Grid>
                                     </Grid>
@@ -131,12 +140,15 @@ const Library = () => {
                             <>
                                 {
                                     g.map((m, i) => (
-                                        <Grid item xs={3}>
-                                            <img
-                                                src={m + "/preview"}
-                                                key={gi + i}
-                                                onClick={() => select(m)}
-                                                style={{ cursor: 'pointer', border: m === selected ? '10px solid #6a6d75' : "" }} />
+                                        <Grid item xs={2}>
+                                            <Paper elevation={3} justifyContent='center' sx={{ height: '16vh', cursor: 'pointer', border: m === selected ? '4px solid #37d2c6' : "" }}>
+                                                <img
+                                                    src={m + "/preview"}
+                                                    key={gi + i}
+                                                    onClick={() => select(m)}
+                                                    height='100%' width='100%' style={{ objectFit: 'scale-down' }}
+                                                />
+                                            </Paper>
                                         </Grid>))
                                 }
                                 < React.Fragment >

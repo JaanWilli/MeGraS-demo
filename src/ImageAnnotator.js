@@ -156,7 +156,7 @@ function ImageAnnotator() {
                             <TextField size='small' style={{ width: '60px', backgroundColor: 'white' }} value={brushRadius} onChange={b => setBrushRadius(b.target.value)}>brush</TextField>
                             <Button onClick={() => canvas.current.undo()}><UndoIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" onClick={() => confirmFreehand()}><CheckBoxIcon /></Button>
+                            <Button variant="contained" color='secondary' onClick={() => confirmFreehand()}><CheckBoxIcon /></Button>
                         </Stack>
                         <ReactSketchCanvas
                             ref={canvas}
@@ -175,7 +175,7 @@ function ImageAnnotator() {
                             <Button variant={mode === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
                             <Button variant={mode === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" onClick={() => confirmShape()}><CheckBoxIcon /></Button>
+                            <Button variant="contained" color='secondary' onClick={() => confirmShape()}><CheckBoxIcon /></Button>
                         </Stack>
                         <svg
                             ref={elementRef}
