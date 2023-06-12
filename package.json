@@ -12,6 +12,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "buffer": "^6.0.3",
+    "konva": "^9.2.0",
     "pako": "^2.1.0",
     "react": "^18.2.0",
     "react-3d-viewer": "^1.0.12",
@@ -19,12 +20,14 @@
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
     "react-images-uploading": "^3.1.7",
+    "react-konva": "^18.2.9",
     "react-pdf": "^7.1.1",
     "react-player": "^2.12.0",
     "react-router": "^6.12.0",
     "react-router-dom": "^6.12.0",
     "react-scripts": "5.0.1",
     "react-sketch-canvas": "^6.2.0",
+    "use-image": "^1.1.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

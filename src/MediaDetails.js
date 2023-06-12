@@ -1,12 +1,12 @@
-import { Box, Button, CircularProgress, Grid, Paper, Stack } from '@mui/material';
+import { Box, Button, CircularProgress, Stack } from '@mui/material';
 import React from 'react';
 import { useParams } from 'react-router';
 import { useNavigate } from "react-router";
-import FileDisplay from './FileDisplay';
 
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-
+import MediaSegmentDetails from './MediaSegmentDetails';
+import ImageSegmentDetails from './ImageSegmentDetails';
 
 const MediaDetails = () => {
     const { objectId } = useParams();
@@ -15,8 +15,6 @@ const MediaDetails = () => {
     const [loading, setLoading] = React.useState(true);
     const [filename, setFilename] = React.useState()
     const [filetype, setFiletype] = React.useState()
-
-    const [segments, setSegments] = React.useState([])
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -42,33 +40,12 @@ const MediaDetails = () => {
             console.log(data)
         }
 
-        async function fetchSegments() {
-            const options = {
-                method: 'POST',
-                body: JSON.stringify({
-                    "s": [],
-                    "p": ["<http://megras.org/schema#segmentOf>"],
-                    "o": ["<http://localhost:8080/" + objectId + ">"]
-                })
-            }
-            let response = await fetch("http://localhost:8080/query/quads", options)
-            let data = await response.json()
-
-            console.log(data)
-            setSegments(data.results.map(d => d.s.replace("<", "").replace(">", "")))
-        }
-
-        let ignore = false;
         fetchMedia();
-        fetchSegments();
-        setLoading(false);
-        return () => {
-            ignore = true;
-        }
+        return () => { }
     }, [])
 
     const deleteMedium = async () => {
-        let response = await fetch("http://localhost:8080/" + objectId, {method: 'DELETE'})
+        let response = await fetch("http://localhost:8080/" + objectId, { method: 'DELETE' })
         if (response.ok) {
             return navigate("/")
         } else {
@@ -83,56 +60,49 @@ const MediaDetails = () => {
             </div>
             <div className="App-content">
                 {loading && <CircularProgress />}
-                {!loading && filename && filetype &&
+                {filename && filetype &&
                     <Stack spacing={3} alignItems="center" direction="column">
-                        <FileDisplay
-                            filedata={"http://localhost:8080/" + objectId}
-                            filetype={filetype}
-                            filename={filename}
-                        />
-                        <Stack direction="column">
-                            <Box>{filename}</Box>
-                            <Box>{filetype}</Box>
-                        </Stack>
-                        <Button
-                            variant='contained'
-                            color='warning'
-                            startIcon={<DeleteIcon />}
-                            onClick={deleteMedium}
-                        >
-                            Delete Medium
-                        </Button>
-                        <Button
-                            variant='contained'
-                            color='secondary'
-                            startIcon={<AddIcon />}
-                            onClick={() => navigate("/segment/" + objectId)}
-                        >
-                            Add segment
-                        </Button>
+                        {filetype.startsWith("image") ?
+                            <ImageSegmentDetails
+                                objectId={objectId}
+                                setLoading={setLoading}
+                            />
+                            :
+                            <MediaSegmentDetails
+                                objectId={objectId}
+                                setLoading={setLoading}
+                                filetype={filetype}
+                                filename={filename}
+                            />
+                        }
+                        {!loading &&
+                            <>
+                                <Stack direction="column">
+                                    <Box>{filename}</Box>
+                                    <Box>{filetype}</Box>
+                                </Stack>
+                                <Button
+                                    variant='contained'
+                                    color='warning'
+                                    startIcon={<DeleteIcon />}
+                                    onClick={deleteMedium}
+                                >
+                                    Delete Medium
+                                </Button>
+                                <Button
+                                    variant='contained'
+                                    color='secondary'
+                                    startIcon={<AddIcon />}
+                                    onClick={() => navigate("/segment/" + objectId)}
+                                >
+                                    Add segment
+                                </Button>
+                            </>
+                        }
                     </Stack>
                 }
-                {!loading && segments &&
-                    <Grid
-                        container
-                        maxWidth={'60vw'}
-                        justifyContent='center'
-                        alignItems='center'
-                        spacing={2}
-                        mt={2}
-                    >
-                        {segments.map((s, i) => (
-                            <Grid item xs={2}>
-                                <Paper elevation={3} sx={{ height: '16vh' }}>
-                                    <img
-                                        src={s + "/preview"}
-                                        key={i}
-                                        height='100%' width='100%' style={{ objectFit: 'scale-down' }}
-                                    />
-                                </Paper>
-                            </Grid>))
-                        }
-                    </Grid>
+                {!loading && filetype && !filetype.startsWith("image")
+
                 }
             </div>
         </>
