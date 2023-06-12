@@ -3,7 +3,7 @@ import React from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import { ReactSketchCanvas } from "react-sketch-canvas";
-import { Input, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { UPNG } from './UPNG';
 import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
 import PentagonIcon from '@mui/icons-material/Pentagon';
@@ -17,7 +17,6 @@ import { useParams } from 'react-router';
 
 function ImageAnnotator() {
     const { imageId } = useParams();
-    console.log(imageId)
     const imageUrl = "http://localhost:8080/" + imageId
 
     const elementRef = React.useRef(null);
@@ -28,6 +27,7 @@ function ImageAnnotator() {
     const [mode, setMode] = React.useState("select");
     const [freehand, setFreehand] = React.useState(false);
     const [brushRadius, setBrushRadius] = React.useState(20);
+    const [category, setCategory] = React.useState();
 
     const [open, setOpen] = React.useState(false);
     const [url, setUrl] = React.useState();
@@ -156,17 +156,22 @@ function ImageAnnotator() {
                             <TextField size='small' style={{ width: '60px', backgroundColor: 'white' }} value={brushRadius} onChange={b => setBrushRadius(b.target.value)}>brush</TextField>
                             <Button onClick={() => canvas.current.undo()}><UndoIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" color='secondary' onClick={() => confirmFreehand()}><CheckBoxIcon /></Button>
                         </Stack>
-                        <ReactSketchCanvas
-                            ref={canvas}
-                            style={{ position: 'relative' }}
-                            width={width}
-                            height={height}
-                            strokeColor='white'
-                            backgroundImage={imageUrl}
-                            strokeWidth={brushRadius}
-                        />
+                        <Stack spacing={2} direction="column">
+                            <ReactSketchCanvas
+                                ref={canvas}
+                                style={{ position: 'relative' }}
+                                width={width}
+                                height={height}
+                                strokeColor='white'
+                                backgroundImage={imageUrl}
+                                strokeWidth={brushRadius}
+                            />
+                            <Stack spacing={2} direction="row" justifyContent="center">
+                                <TextField required label="Category" onChange={(e) => setCategory(e.target.value.toLowerCase())} />
+                                <Button variant="contained" color='secondary' disabled={!category} onClick={() => confirmFreehand()}><CheckBoxIcon /></Button>
+                            </Stack>
+                        </Stack>
                     </Stack>
                     :
                     <Stack spacing={2} direction="row">
@@ -175,21 +180,27 @@ function ImageAnnotator() {
                             <Button variant={mode === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
                             <Button variant={mode === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" color='secondary' onClick={() => confirmShape()}><CheckBoxIcon /></Button>
                         </Stack>
-                        <svg
-                            ref={elementRef}
-                            version="1.1"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width={width}
-                            height={height}
-                            viewBox={`0, 0, ${width}, ${height}`}
-                            preserveAspectRatio="xMinYMin"
-                        />
+                        <Stack spacing={2} direction="column">
+                            <svg
+                                ref={elementRef}
+                                version="1.1"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width={width}
+                                height={height}
+                                viewBox={`0, 0, ${width}, ${height}`}
+                                preserveAspectRatio="xMinYMin"
+                            />
+                            <Stack spacing={2} direction="row" justifyContent="center">
+                                <TextField required label="Category" onChange={(e) => setCategory(e.target.value.toLowerCase())} />
+                                <Button variant="contained" color='secondary' disabled={!shape || !category} onClick={() => confirmShape()}><CheckBoxIcon /></Button>
+                            </Stack>
+                        </Stack>
                     </Stack>}
                 <ImageDialog
                     url={url}
                     open={open}
+                    category={category}
                     onClose={() => setOpen(false)}
                 />
             </div>

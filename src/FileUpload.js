@@ -2,10 +2,8 @@ import { Box, Button, CircularProgress, Grid, IconButton, Stack } from '@mui/mat
 import './App.css';
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { useDropzone } from 'react-dropzone'
-import AddIcon from '@mui/icons-material/Add';
 import FileDisplay from './FileDisplay';
-
+import FileSelect from './FileSelect';
 
 
 const ImageUpload = () => {
@@ -17,27 +15,14 @@ const ImageUpload = () => {
     const [fileID, setFileID] = React.useState();
     const [loading, setLoading] = React.useState(false);
 
-
-    const onDrop = React.useCallback(files => {
-        handleFileUpload(files[0])
-    }, [])
-    const { getRootProps } = useDropzone({ onDrop })
-
-    const onFileSelect = (e) => {
-        if (!e.target.files) {
-            return;
+    const handleFileUpload = (files) => {
+        if (files.length == 1) {
+            console.log(files[0])
+            setFile(files[0])
+            setFiledata(URL.createObjectURL(files[0]))
+            setFiletype(files[0].type)
         }
-        handleFileUpload(e.target.files[0])
-    }
-
-    const handleFileUpload = (file) => {
-        console.log(file)
-        setFile(file)
-        setFiledata(URL.createObjectURL(file))
-        setFiletype(file.type)
     };
-
-    
 
     const cancel = () => {
         setFile()
@@ -72,25 +57,10 @@ const ImageUpload = () => {
             </div>
             <div className="App-content">
                 {!file &&
-                    <>
-                        <Button
-                            component="label"
-                            variant='contained'
-                            startIcon={<AddIcon />}
-                            sx={{ m: 1 }}
-                        >
-                            Select from computer
-                            <input type="file" hidden onChange={onFileSelect} />
-                        </Button>
-                        <Box sx={{ m: 1 }}>or</Box>
-                        <Box
-                            m={2}
-                            p={5}
-                            width='20vw'
-                            sx={{ border: '2px dashed #444d4e', borderRadius: '10px' }}
-                            {...getRootProps()}
-                        >Drop file here</Box>
-                    </>
+                    <FileSelect 
+                        handleFileUpload={handleFileUpload}
+                        multiple={false}
+                    />
                 }
                 {file && !loading && !fileID &&
                     <Stack spacing={2} direction="column" alignItems="center">

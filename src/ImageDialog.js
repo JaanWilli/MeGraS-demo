@@ -2,18 +2,38 @@ import { Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton }
 import React from "react";
 import CloseIcon from '@mui/icons-material/Close';
 
-function ImageDialog({ open, url, onClose }) {
+function ImageDialog({ open, url, category, onClose }) {
 
     const [loading, setLoading] = React.useState(true);
     const [redirectUrl, setRedirectUrl] = React.useState();
 
     React.useEffect(() => {
-        fetch(url)
-            .then(response => {
+        async function sendMedia() {
+            let response = await fetch(url)
+            if (response.ok) {
                 setRedirectUrl(response.url)
-                setLoading(false)
-            })
-            .catch(e => console.log(e))
+
+                var options = {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        "quads": [{
+                            "s": "<" + response.url + ">",
+                            "p": "<https://schema.org/category>",
+                            "o": category + "^^String"
+                        }]
+                    })
+                }
+                console.log(options)
+                let res = await fetch("http://localhost:8080/add/quads", options)
+                console.log(res)
+            }
+        }
+
+        if (open) {
+            sendMedia();
+        }
+        setLoading(false);
+        return () => {}
     })
 
     return (
