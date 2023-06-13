@@ -12,12 +12,10 @@ import UndoIcon from '@mui/icons-material/Undo';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import ImageDialog from './ImageDialog';
-import { useParams } from 'react-router';
 
 
-function ImageAnnotator() {
-    const { imageId } = useParams();
-    const imageUrl = "http://localhost:8080/" + imageId
+function ImageAnnotator({ id }) {
+    const imageUrl = "http://localhost:8080/" + id
 
     const elementRef = React.useRef(null);
     const canvas = React.createRef();
@@ -54,7 +52,6 @@ function ImageAnnotator() {
             });
             setMyEditor(myEditor);
             myEditor.loadImage(imageUrl);
-            myEditor.on('mouseup', (e) => console.log('mouseup event', e));
             myEditor.selectMode();
         }
     }, [freehand]);

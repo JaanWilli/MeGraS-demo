@@ -14,6 +14,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import SearchIcon from '@mui/icons-material/Search';
 import Query from './Query';
+import MediaAnnotator from './MediaAnnotator';
 
 const App = () => {
 
@@ -31,7 +32,7 @@ const App = () => {
           <Route path="/" element={<Library />} />
           <Route path="/add" element={<ImageUpload />} />
           <Route path="/:objectId" element={<MediaDetails />} />
-          <Route path="/segment/:imageId" element={<ImageAnnotator />} />
+          <Route path="/segment/:id" element={<MediaAnnotator />} />
           <Route path="/coco" element={<CocoImporter />} />
           <Route path="/query" element={<Query />} />
         </Routes>
