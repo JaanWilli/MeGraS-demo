@@ -1,4 +1,4 @@
-import { CircularProgress, Grid, Paper } from "@mui/material";
+import { Autocomplete, Grid, Paper, TextField } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router";
 import FileDisplay from "./FileDisplay";
@@ -9,7 +9,14 @@ const Library = () => {
 
     const [loading, setLoading] = React.useState(true);
     const [media, setMedia] = React.useState([])
-    const [selected, setSelected] = React.useState()
+    const [mediaTypes, setMediaTypes] = React.useState([])
+    const [selectedType, setSelected] = React.useState()
+
+
+    const mimeToMediaType = new Map([
+        ["image/png", "Image"],
+        ["video/webm", "Video"],
+    ])
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -23,7 +30,7 @@ const Library = () => {
             let uris = await response.json()
 
             console.log(uris)
-            
+
             options = {
                 method: 'POST',
                 body: JSON.stringify({
@@ -33,12 +40,14 @@ const Library = () => {
                 })
             }
             response = await fetch("http://localhost:8080/query/quads", options)
-            let mimetypes = await response.json()
+            let mimetypeResults = await response.json()
 
-            console.log(mimetypes)
+            console.log(mimetypeResults)
+            let mimetypes = mimetypeResults.results.map(m => mimeToMediaType.get(m.o.replace("^^String", "")))
+            setMediaTypes([...new Set(mimetypes)])
 
             if (!ignore) {
-                let mediaArray = mimetypes.results.map(d => ({
+                let mediaArray = mimetypeResults.results.map(d => ({
                     url: d.s.replace("<", "").replace(">", ""),
                     type: d.o.replace("^^String", "")
                 }))
@@ -58,10 +67,15 @@ const Library = () => {
         <>
             <div className='App-title'>
                 My Library
-                <div className='App-subtitle'>Click on a medium to display existing segments.</div>
+                <Autocomplete className='App-subtitle'
+                    disablePortal
+                    options={mediaTypes}
+                    sx={{ width: 300 }}
+                    onChange={(e, v) => setSelected(v)}
+                    renderInput={(params) => <TextField {...params} label="Media Type" />}
+                />
             </div>
             <div className="App-content">
-                {loading && <CircularProgress />}
                 <Grid
                     container
                     maxWidth={'60vw'}
@@ -69,18 +83,21 @@ const Library = () => {
                     alignItems='center'
                     spacing={2}
                 >
-                    {media.map((m, i) => (
-                        <Grid item xs={2}>
-                            <Paper elevation={3} onClick={() => navigate(m.url.replace("http://localhost:8080", ""))} sx={{ height: '16vh', cursor: 'pointer' }}>
-                                <FileDisplay
-                                isPreview={true}
-                                filedata={m.url}
-                                filetype={m.type}
-                                
-                                />
-                            </Paper>
-                        </Grid>))
-                    }
+                    {media.map((m, i) => {
+                        return (
+                            !selectedType || mimeToMediaType.get(m.type) === selectedType ?
+                                <Grid item xs={2}>
+                                    <Paper elevation={3} onClick={() => navigate(m.url.replace("http://localhost:8080", ""))} sx={{ height: '16vh', cursor: 'pointer' }}>
+                                        <FileDisplay
+                                            isPreview={true}
+                                            filedata={m.url}
+                                            filetype={m.type}
+                                        />
+                                    </Paper>
+                                </Grid>
+                                : null
+                        )
+                    })}
                 </Grid>
             </div >
         </>

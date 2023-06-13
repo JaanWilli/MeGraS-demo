@@ -31,8 +31,8 @@ function ImageDialog({ open, url, category, onClose }) {
 
         if (open) {
             sendMedia();
+            setLoading(false);
         }
-        setLoading(false);
         return () => {}
     })
 
@@ -60,7 +60,7 @@ function ImageDialog({ open, url, category, onClose }) {
                     :
                     <>
                         <a href={redirectUrl} target="_blank">
-                            <img src={redirectUrl} />
+                            <img src={redirectUrl + "/preview"} />
                         </a>
                         <Box textAlign='center'>Segment saved</Box>
                     </>

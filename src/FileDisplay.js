@@ -73,28 +73,15 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
     }
 
     const previewFile = () => {
-        if (filetype.startsWith("image")) {
+        if (filetype.startsWith("image") || filetype.startsWith("video") || filetype === "application/pdf") {
             return <img
                 height='100%'
                 width='100%'
                 src={filedata + "/preview"}
                 style={{ objectFit: 'scale-down' }}
             />
-        } else if (filetype.startsWith("video")) {
-            return <OndemandVideoIcon />
-        } else if (filetype === "application/pdf") {
-            return <>
-                <Document file={filedata}>
-                    <Page
-                        height={window.innerHeight * 0.16}
-                        pageNumber={1}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                        customTextRenderer={false}
-                    />
-                </Document>
-            </>
         } else if (filetype.startsWith("audio")) {
+            return <AudiotrackIcon />
             return <AudiotrackIcon />
         } else if (filename.endsWith(".obj")) {
             return (

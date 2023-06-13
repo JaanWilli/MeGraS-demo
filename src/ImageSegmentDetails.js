@@ -7,7 +7,8 @@ const SegmentImage = ({ url, x, y, opacity }) => {
     return <Image image={image} x={x} y={y} opacity={opacity} />;
 };
 
-const ImageSegmentDetails = ({ objectId, setLoading }) => {
+const ImageSegmentDetails = (props) => {
+    const { objectId, loading, setLoading, details } = props
 
     const stageref = React.useRef();
     const tooltipref = React.useRef();
@@ -19,7 +20,6 @@ const ImageSegmentDetails = ({ objectId, setLoading }) => {
     const [highlightSegment, setHighlight] = React.useState()
 
     React.useEffect(() => {
-
         async function fetchSegments() {
             let options = {
                 method: 'POST',
@@ -120,6 +120,8 @@ const ImageSegmentDetails = ({ objectId, setLoading }) => {
                 :
                 null
             }
+            
+            {details}
         </>
     )
 }

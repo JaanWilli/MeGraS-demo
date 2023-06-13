@@ -53,6 +53,33 @@ const MediaDetails = () => {
         }
     }
 
+    const details = (
+        <Stack spacing={3} alignItems="center" direction="column">
+            <Stack direction="column">
+                <Box>{filename}</Box>
+                <Box>{filetype}</Box>
+            </Stack>
+            <Button
+                variant='contained'
+                color='warning'
+                startIcon={<DeleteIcon />}
+                onClick={deleteMedium}
+            >
+                Delete Medium
+            </Button>
+            {["image/png", "video/webm"].includes(filetype) &&
+                <Button
+                    variant='contained'
+                    color='secondary'
+                    startIcon={<AddIcon />}
+                    onClick={() => navigate("/segment/" + objectId)}
+                >
+                    Add segment
+                </Button>
+            }
+        </Stack>
+    )
+
     return (
         <>
             <div className='App-title'>
@@ -61,48 +88,24 @@ const MediaDetails = () => {
             <div className="App-content">
                 {loading && <CircularProgress />}
                 {filename && filetype &&
-                    <Stack spacing={3} alignItems="center" direction="column">
+                    <>
                         {filetype.startsWith("image") ?
                             <ImageSegmentDetails
                                 objectId={objectId}
                                 setLoading={setLoading}
+                                details={details}
                             />
                             :
                             <MediaSegmentDetails
                                 objectId={objectId}
+                                loading={loading}
                                 setLoading={setLoading}
                                 filetype={filetype}
                                 filename={filename}
+                                details={details}
                             />
                         }
-                        {!loading &&
-                            <>
-                                <Stack direction="column">
-                                    <Box>{filename}</Box>
-                                    <Box>{filetype}</Box>
-                                </Stack>
-                                <Button
-                                    variant='contained'
-                                    color='warning'
-                                    startIcon={<DeleteIcon />}
-                                    onClick={deleteMedium}
-                                >
-                                    Delete Medium
-                                </Button>
-                                <Button
-                                    variant='contained'
-                                    color='secondary'
-                                    startIcon={<AddIcon />}
-                                    onClick={() => navigate("/segment/" + objectId)}
-                                >
-                                    Add segment
-                                </Button>
-                            </>
-                        }
-                    </Stack>
-                }
-                {!loading && filetype && !filetype.startsWith("image")
-
+                    </>
                 }
             </div>
         </>
