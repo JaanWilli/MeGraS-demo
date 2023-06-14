@@ -3,7 +3,7 @@ import React from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import { ReactSketchCanvas } from "react-sketch-canvas";
-import { TextField } from '@mui/material';
+import { CircularProgress, TextField } from '@mui/material';
 import { UPNG } from './UPNG';
 import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
 import PentagonIcon from '@mui/icons-material/Pentagon';
@@ -11,6 +11,8 @@ import RectangleIcon from '@mui/icons-material/Rectangle';
 import UndoIcon from '@mui/icons-material/Undo';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import SearchIcon from '@mui/icons-material/Search';
+
 import ImageDialog from './ImageDialog';
 
 
@@ -18,13 +20,16 @@ function ImageAnnotator({ id }) {
     const imageUrl = "http://localhost:8080/" + id
 
     const elementRef = React.useRef(null);
-    const canvas = React.createRef();
+    const canvas = React.createRef(null);
 
     const [myEditor, setMyEditor] = React.useState();
     const [shape, setShape] = React.useState();
-    const [mode, setMode] = React.useState("select");
-    const [freehand, setFreehand] = React.useState(false);
+    const [shapeType, setShapeType] = React.useState("select");
+    const [mode, setMode] = React.useState("shape");
     const [brushRadius, setBrushRadius] = React.useState(20);
+    const [prompt, setPrompt] = React.useState();
+    const [mask, setMask] = React.useState();
+    const [loading, setLoading] = React.useState();
     const [category, setCategory] = React.useState();
 
     const [open, setOpen] = React.useState(false);
@@ -45,7 +50,7 @@ function ImageAnnotator({ id }) {
             const myEditor = editor(elementRef.current, {
                 componentDrawnHandler: (d) => {
                     setShape(d)
-                    setMode("select")
+                    setShapeType("select")
                     myEditor.selectMode()
                     console.log(d)
                 }
@@ -54,16 +59,16 @@ function ImageAnnotator({ id }) {
             myEditor.loadImage(imageUrl);
             myEditor.selectMode();
         }
-    }, [freehand]);
+    }, [mode]);
 
-    const toFreehand = (isFreehand) => {
+    const changeMode = (mode) => {
         clear()
-        setFreehand(isFreehand)
+        setMode(mode)
     }
 
     function select() {
         myEditor.selectMode()
-        setMode("select")
+        setShapeType("select")
     }
 
     const draw = (type) => {
@@ -72,13 +77,13 @@ function ImageAnnotator({ id }) {
         } else if (type === "polygon") {
             myEditor.polygon()
         }
-        setMode(type)
+        setShapeType(type)
     }
 
     const clear = () => {
-        if (freehand) {
+        if (mode === "freehand") {
             canvas.current.clearCanvas()
-        } else {
+        } else if (mode === "shape") {
             if (shape !== undefined) {
                 const x = myEditor.getComponentById(shape.element.id)
                 if (x !== undefined) {
@@ -86,7 +91,32 @@ function ImageAnnotator({ id }) {
                     setShape();
                 }
             }
+        } else {
+            setMask()
+            setCategory()
         }
+    }
+
+    const predict = async () => {
+        setLoading(true)
+        var options = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                "url": imageUrl,
+                "prompt": prompt
+            })
+        }
+        console.log(options)
+        let response = await fetch("http://localhost:5000/predict", options)
+        console.log(response)
+        let base64mask = await response.text()
+        console.log(base64mask)
+        setMask(base64mask)
+        setLoading(false)
     }
 
     const confirmShape = () => {
@@ -113,8 +143,13 @@ function ImageAnnotator({ id }) {
         clear()
     }
 
-    const confirmFreehand = async () => {
-        let base64rgba = await canvas.current.exportImage("png")
+    const confirmMask = async () => {
+        let base64rgba
+        if (mode === "freehand") {
+            base64rgba = await canvas.current.exportImage("png")
+        } else if (mode === "predict") {
+            base64rgba = mask
+        }
         let response = await fetch(base64rgba)
         let arraybuffer = await response.arrayBuffer()
 
@@ -144,10 +179,11 @@ function ImageAnnotator({ id }) {
             </div>
             <div className="App-content">
                 <Stack spacing={2} direction="row" marginBottom={2}>
-                    <Button variant={freehand ? "text" : "contained"} onClick={() => toFreehand(false)}>Shapes</Button>
-                    <Button variant={freehand ? "contained" : "text"} onClick={() => toFreehand(true)}>Freehand</Button>
+                    <Button variant={mode === "shape" ? "contained" : "text"} onClick={() => changeMode("shape")}>Shapes</Button>
+                    <Button variant={mode === "freehand" ? "contained" : "text"} onClick={() => changeMode("freehand")}>Freehand</Button>
+                    <Button variant={mode === "predict" ? "contained" : "text"} onClick={() => changeMode("predict")}>Predict</Button>
                 </Stack>
-                {freehand ?
+                {mode === "freehand" &&
                     <Stack spacing={2} direction="row">
                         <Stack spacing={2} direction="column">
                             <TextField size='small' style={{ width: '60px', backgroundColor: 'white' }} value={brushRadius} onChange={b => setBrushRadius(b.target.value)}>brush</TextField>
@@ -166,16 +202,17 @@ function ImageAnnotator({ id }) {
                             />
                             <Stack spacing={2} direction="row" justifyContent="center">
                                 <TextField required label="Category" onChange={(e) => setCategory(e.target.value.toLowerCase())} />
-                                <Button variant="contained" color='secondary' disabled={!category} onClick={() => confirmFreehand()}><CheckBoxIcon /></Button>
+                                <Button variant="contained" color='secondary' disabled={!category} onClick={() => confirmMask()}><CheckBoxIcon /></Button>
                             </Stack>
                         </Stack>
                     </Stack>
-                    :
+                }
+                {mode === "shape" &&
                     <Stack spacing={2} direction="row">
                         <Stack spacing={2} direction="column">
-                            <Button variant={mode === "select" ? "contained" : "text"} onClick={() => select()}><HighlightAltIcon /></Button>
-                            <Button variant={mode === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
-                            <Button variant={mode === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
+                            <Button variant={shapeType === "select" ? "contained" : "text"} onClick={() => select()}><HighlightAltIcon /></Button>
+                            <Button variant={shapeType === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
+                            <Button variant={shapeType === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
                         </Stack>
                         <Stack spacing={2} direction="column">
@@ -193,7 +230,31 @@ function ImageAnnotator({ id }) {
                                 <Button variant="contained" color='secondary' disabled={!shape || !category} onClick={() => confirmShape()}><CheckBoxIcon /></Button>
                             </Stack>
                         </Stack>
-                    </Stack>}
+                    </Stack>
+                }
+                {mode === "predict" &&
+                    <Stack spacing={2} direction="row">
+                        <Stack spacing={2} direction="column">
+                            <TextField label="Prompt" onChange={(e) => setPrompt(e.target.value.toLowerCase())} />
+                            <Button onClick={predict}>{loading ? <CircularProgress /> : <SearchIcon />}</Button>
+                            <Button disabled={!mask} onClick={clear}><DeleteIcon /></Button>
+                        </Stack>
+                        <Stack spacing={2} direction="column">
+                            <img
+                                src={imageUrl}
+                                alt=""
+                                style={{
+                                    maskImage: mask ? `url('${mask}')` : null, 
+                                    WebkitMaskImage: mask ? `url('${mask}')` : null,
+                                }}
+                            ></img>
+                            <Stack spacing={2} direction="row" justifyContent="center">
+                                <TextField required label="Category" onChange={(e) => setCategory(e.target.value.toLowerCase())} />
+                                <Button variant="contained" color='secondary' disabled={!mask || !category} onClick={() => confirmMask()}><CheckBoxIcon /></Button>
+                            </Stack>
+                        </Stack>
+                    </Stack>
+                }
                 <ImageDialog
                     url={url}
                     open={open}
