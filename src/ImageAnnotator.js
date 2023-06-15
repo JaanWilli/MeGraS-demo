@@ -93,7 +93,6 @@ function ImageAnnotator({ id }) {
             }
         } else {
             setMask()
-            setCategory()
         }
     }
 
@@ -110,11 +109,8 @@ function ImageAnnotator({ id }) {
                 "prompt": prompt
             })
         }
-        console.log(options)
         let response = await fetch("http://localhost:5000/predict", options)
-        console.log(response)
         let base64mask = await response.text()
-        console.log(base64mask)
         setMask(base64mask)
         setLoading(false)
     }
@@ -122,14 +118,12 @@ function ImageAnnotator({ id }) {
     const confirmShape = () => {
         var url;
         if (shape.dim !== undefined) {
-            console.log(shape.dim)
             const x = shape.dim.x
             const w = shape.dim.width
             const h = shape.dim.height
             const y = height - shape.dim.y - h
             url = imageUrl + "/segment/rect/" + x + "," + (x + w) + "," + y + "," + (y + h)
         } else if (shape.points !== undefined) {
-            console.log(shape.points)
             var points = []
             for (var i = 0; i < shape.points.length; i++) {
                 points.push("(" + shape.points[i].x + "," + (height - shape.points[i].y) + ")")

@@ -29,8 +29,6 @@ const Library = () => {
             var response = await fetch("http://localhost:8080/query/predicate", options)
             let uris = await response.json()
 
-            console.log(uris)
-
             options = {
                 method: 'POST',
                 body: JSON.stringify({
@@ -42,7 +40,6 @@ const Library = () => {
             response = await fetch("http://localhost:8080/query/quads", options)
             let mimetypeResults = await response.json()
 
-            console.log(mimetypeResults)
             let mimetypes = mimetypeResults.results.map(m => mimeToMediaType.get(m.o.replace("^^String", "")))
             setMediaTypes([...new Set(mimetypes)])
 
@@ -51,7 +48,6 @@ const Library = () => {
                     url: d.s.replace("<", "").replace(">", ""),
                     type: d.o.replace("^^String", "")
                 }))
-                console.log(mediaArray)
                 setMedia(mediaArray)
                 setLoading(false)
             }

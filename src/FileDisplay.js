@@ -21,7 +21,6 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
     const [pageNumber, setPageNumber] = React.useState(1);
 
     function onDocumentLoadSuccess({ numPages }) {
-        console.log(numPages)
         setNumPages(numPages);
         setPageNumber(1);
     }

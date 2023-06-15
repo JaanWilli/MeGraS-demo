@@ -53,7 +53,6 @@ function VideoAnnotator({ id }) {
     }, [image]);
 
     React.useEffect(() => {
-        console.log("is ready", ready)
         const frame = captureVideoFrame(playerRef.current.getInternalPlayer())
 
         const img = new Image();
@@ -101,14 +100,12 @@ function VideoAnnotator({ id }) {
         let timestamp = slider / 100 * playerRef.current.getDuration()
         var newRotoscope;
         if (shape.dim !== undefined) {
-            console.log(shape.dim)
             const x = shape.dim.x
             const w = shape.dim.width
             const h = shape.dim.height
             const y = height - shape.dim.y - h
             newRotoscope = timestamp + ",rect," + x + "," + (x + w) + "," + y + "," + (y + h)
         } else if (shape.points !== undefined) {
-            console.log(shape.points)
             var points = []
             for (var i = 0; i < shape.points.length; i++) {
                 points.push("(" + shape.points[i].x + "," + (height - shape.points[i].y) + ")")
@@ -122,7 +119,6 @@ function VideoAnnotator({ id }) {
 
     const complete = () => {
         rotoscope.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts))
-        console.log(rotoscope)
         const url = videoUrl + "/segment/rotoscope/" + rotoscope.map(r => r.uri).join(";")
         console.log(url)
         setOpen(true)
