@@ -6,9 +6,10 @@ import FileDisplay from './FileDisplay';
 import FileSelect from './FileSelect';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 
 
-const ImageUpload = () => {
+const ImageUpload = ({ triggerSnackbar }) => {
     const navigate = useNavigate();
 
     const [file, setFile] = React.useState();
@@ -40,6 +41,8 @@ const ImageUpload = () => {
     const generateCaption = async () => {
         setCaptionLoading(true)
         let response = await fetch("http://localhost:5000/caption/" + fileID)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (response == undefined) return
         let caption = await response.text()
         setCaption(caption)
         setCaptionLoading(false)
@@ -47,6 +50,8 @@ const ImageUpload = () => {
 
     const sendCaption = async () => {
         let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (embed_response == undefined) return
         let embedding = await embed_response.text()
 
         var options = {
@@ -60,6 +65,8 @@ const ImageUpload = () => {
             })
         }
         let response = await fetch("http://localhost:8080/add/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
         console.log(response)
         if (response.ok) {
             setCaptionSent(true)
@@ -81,7 +88,7 @@ const ImageUpload = () => {
                 setFileID(data[filename]["uri"])
             }
             )
-            .catch(e => console.log(e))
+            .catch(e => triggerSnackbar(BACKEND_ERR, "error"))
     };
 
     return (

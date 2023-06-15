@@ -1,9 +1,10 @@
 import { Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import React from "react";
 import CloseIcon from '@mui/icons-material/Close';
+import { BACKEND_ERR, PREDICTOR_ERR } from "./Errors";
 
 function ImageDialog(props) {
-    const { open, url, category, onClose } = props
+    const { triggerSnackbar, open, url, category, onClose } = props
 
     const [loading, setLoading] = React.useState(false);
     const [redirectUrl, setRedirectUrl] = React.useState();
@@ -22,6 +23,8 @@ function ImageDialog(props) {
                 })
 
                 let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+                    .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+                if (embed_response == undefined) return
                 let embedding = await embed_response.text()
                 quads.push({
                     "s": "<" + response.url + ">",
@@ -36,6 +39,7 @@ function ImageDialog(props) {
                     })
                 }
                 let res = await fetch("http://localhost:8080/add/quads", options)
+                    .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
                 console.log(res)
             }
         }
@@ -45,7 +49,7 @@ function ImageDialog(props) {
             sendMedia();
             setLoading(false);
         }
-        return () => {}
+        return () => { }
     })
 
     return (

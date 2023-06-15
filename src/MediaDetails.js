@@ -7,8 +7,9 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MediaSegmentDetails from './MediaSegmentDetails';
 import ImageSegmentDetails from './ImageSegmentDetails';
+import { BACKEND_ERR } from './Errors';
 
-const MediaDetails = () => {
+const MediaDetails = ({ triggerSnackbar }) => {
     const { objectId } = useParams();
     const navigate = useNavigate();
 
@@ -27,6 +28,8 @@ const MediaDetails = () => {
                 })
             }
             let response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             let data = await response.json()
 
             data.results.forEach((res) => {
@@ -46,6 +49,8 @@ const MediaDetails = () => {
 
     const deleteMedium = async () => {
         let response = await fetch("http://localhost:8080/" + objectId, { method: 'DELETE' })
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
         if (response.ok) {
             return navigate("/")
         } else {
@@ -91,12 +96,14 @@ const MediaDetails = () => {
                     <>
                         {filetype.startsWith("image") ?
                             <ImageSegmentDetails
+                                triggerSnackbar={triggerSnackbar}
                                 objectId={objectId}
                                 setLoading={setLoading}
                                 details={details}
                             />
                             :
                             <MediaSegmentDetails
+                                triggerSnackbar={triggerSnackbar}
                                 objectId={objectId}
                                 loading={loading}
                                 setLoading={setLoading}

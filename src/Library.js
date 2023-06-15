@@ -2,9 +2,10 @@ import { Autocomplete, Grid, Paper, TextField } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router";
 import FileDisplay from "./FileDisplay";
+import { BACKEND_ERR } from "./Errors";
 
 
-const Library = () => {
+const Library = ({ triggerSnackbar }) => {
     const navigate = useNavigate();
 
     const [loading, setLoading] = React.useState(true);
@@ -16,6 +17,7 @@ const Library = () => {
     const mimeToMediaType = new Map([
         ["image/png", "Image"],
         ["video/webm", "Video"],
+        ["audio/webm", "Audio"],
     ])
 
     React.useEffect(() => {
@@ -27,6 +29,8 @@ const Library = () => {
                 })
             }
             var response = await fetch("http://localhost:8080/query/predicate", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             let uris = await response.json()
 
             options = {
@@ -38,8 +42,11 @@ const Library = () => {
                 })
             }
             response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             let mimetypeResults = await response.json()
 
+            console.log(mimetypeResults)
             let mimetypes = mimetypeResults.results.map(m => mimeToMediaType.get(m.o.replace("^^String", "")))
             setMediaTypes([...new Set(mimetypes)])
 

@@ -3,8 +3,7 @@ import React from 'react';
 import './App.css';
 import Library from './Library';
 import ImageUpload from './FileUpload'
-import { Box, Button, CssBaseline, ThemeProvider } from '@mui/material';
-import ImageAnnotator from './ImageAnnotator';
+import { Box, Button, CssBaseline, ThemeProvider, Snackbar, Alert } from '@mui/material';
 import CocoImporter from './CocoImporter';
 import { theme } from './ThemeOptions';
 import MediaDetails from './MediaDetails';
@@ -18,6 +17,24 @@ import MediaAnnotator from './MediaAnnotator';
 
 const App = () => {
 
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState();
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState("info");
+
+  const triggerSnackbar = (message, severity) => {
+    setSnackbarOpen(true)
+    setSnackbarMessage(message)
+    setSnackbarSeverity(severity)
+  };
+
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setSnackbarOpen(false);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -29,13 +46,24 @@ const App = () => {
           <Link to="/query"><Button variant='contained'><SearchIcon /></Button></Link>
         </div>
         <Routes>
-          <Route path="/" element={<Library />} />
-          <Route path="/add" element={<ImageUpload />} />
-          <Route path="/:objectId" element={<MediaDetails />} />
-          <Route path="/segment/:id" element={<MediaAnnotator />} />
-          <Route path="/coco" element={<CocoImporter />} />
-          <Route path="/query" element={<Query />} />
+          <Route path="/" element={<Library triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/add" element={<ImageUpload triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/:objectId" element={<MediaDetails triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/segment/:id" element={<MediaAnnotator triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/coco" element={<CocoImporter triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/query" element={<Query triggerSnackbar={triggerSnackbar} />} />
         </Routes>
+
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={8000}
+          onClose={handleClose}
+          anchorOrigin={{vertical: "bottom", horizontal: "right"}}
+        >
+          <Alert severity={snackbarSeverity} onClose={handleClose} sx={{width: '100%', fontSize: '22px'}} >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   );

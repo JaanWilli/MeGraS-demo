@@ -2,9 +2,10 @@ import React from 'react';
 import { useParams } from 'react-router';
 import ImageAnnotator from './ImageAnnotator';
 import VideoAnnotator from './VideoAnnotator';
+import { BACKEND_ERR } from './Errors';
 
 
-function MediaAnnotator() {
+function MediaAnnotator({ triggerSnackbar }) {
     const { id } = useParams();
 
     const [type, setType] = React.useState()
@@ -13,6 +14,8 @@ function MediaAnnotator() {
         async function fetchMedia() {
 
             var response = await fetch("http://localhost:8080/" + id)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
 
             setType(response.headers.get("Content-Type"))
         }
@@ -22,8 +25,8 @@ function MediaAnnotator() {
 
     return (
         <>
-            {type === "image/png" && <ImageAnnotator id={id} />}
-            {type === "video/webm" && <VideoAnnotator id={id} />}
+            {type === "image/png" && <ImageAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
+            {type === "video/webm" && <VideoAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
         </>
     );
 }

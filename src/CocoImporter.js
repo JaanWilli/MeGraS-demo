@@ -8,9 +8,10 @@ import instances from './instances_val2017.json'
 import captions from './captions_val2017.json'
 import { useNavigate } from 'react-router';
 import FileSelect from './FileSelect';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 
 
-const CocoImporter = () => {
+const CocoImporter = ({ triggerSnackbar }) => {
     const navigate = useNavigate();
 
     const [images, setImages] = React.useState([]);
@@ -68,6 +69,8 @@ const CocoImporter = () => {
             let imageid = filename.replaceAll("0", "").replace(".jpg", "")
 
             var response = await fetch("http://localhost:8080/add/file", { method: 'POST', body: body })
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             if (response.ok) {
                 let data = await response.json()
                 let imageUrl = "http://localhost:8080/" + data[filename]["uri"]
@@ -78,6 +81,8 @@ const CocoImporter = () => {
                 }
                 for (let caption of captions) {
                     let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+                        .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+                    if (embed_response == undefined) return
                     let embedding = await embed_response.text()
                     quads.push({
                         "s": "<" + imageUrl + ">",
@@ -107,6 +112,8 @@ const CocoImporter = () => {
                                 })
 
                                 let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+                                    .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+                                if (embed_response == undefined) return
                                 let embedding = await embed_response.text()
                                 quads.push({
                                     "s": "<" + response.url + ">",
@@ -127,6 +134,7 @@ const CocoImporter = () => {
             })
         }
         await fetch("http://localhost:8080/add/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
 
         console.log("complete")
         setAddedSegments(c)

@@ -13,7 +13,7 @@ import captureVideoFrame from "capture-video-frame";
 import ReactPlayer from "react-player";
 
 
-function VideoAnnotator({ id }) {
+function VideoAnnotator({ triggerSnackbar, id }) {
     const videoUrl = "http://localhost:8080/" + id
 
     const elementRef = React.useRef(null);
@@ -177,6 +177,7 @@ function VideoAnnotator({ id }) {
                     </Stack>
                 }
                 <ImageDialog
+                    triggerSnackbar={triggerSnackbar}
                     url={url}
                     open={open}
                     category={category}

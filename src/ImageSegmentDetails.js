@@ -1,6 +1,7 @@
 import React from 'react';
 import { Stage, Layer, Rect, Text, Image, Label, Tag } from 'react-konva';
 import useImage from 'use-image';
+import { BACKEND_ERR } from './Errors';
 
 const SegmentImage = ({ url, x, y, opacity }) => {
     const [image] = useImage(url);
@@ -8,7 +9,7 @@ const SegmentImage = ({ url, x, y, opacity }) => {
 };
 
 const ImageSegmentDetails = (props) => {
-    const { objectId, loading, setLoading, details, limitSegments, hideEmpty=false } = props
+    const { triggerSnackbar, objectId, loading, setLoading, details, limitSegments, hideEmpty = false } = props
 
     const stageref = React.useRef();
     const tooltipref = React.useRef();
@@ -32,10 +33,12 @@ const ImageSegmentDetails = (props) => {
                 })
             }
             let response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             let data = await response.json()
 
             let segmentURIs = data.results.map(d => d.s)
-            
+
             let relevantSegments = limitSegments ? segmentURIs.filter(v => limitSegments.includes(v)) : segmentURIs;
             if (hideEmpty && relevantSegments.length == 0) {
                 setShowImage(false)
@@ -50,6 +53,8 @@ const ImageSegmentDetails = (props) => {
                 })
             }
             response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             data = await response.json()
 
             const groupedMap = new Map();
@@ -125,7 +130,7 @@ const ImageSegmentDetails = (props) => {
                 :
                 null
             }
-            
+
             {details}
         </>
     )

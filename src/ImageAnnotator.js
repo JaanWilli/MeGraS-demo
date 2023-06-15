@@ -14,9 +14,10 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import SearchIcon from '@mui/icons-material/Search';
 
 import ImageDialog from './ImageDialog';
+import { PREDICTOR_ERR } from './Errors';
 
 
-function ImageAnnotator({ id }) {
+function ImageAnnotator({ triggerSnackbar, id }) {
     const imageUrl = "http://localhost:8080/" + id
 
     const elementRef = React.useRef(null);
@@ -110,6 +111,8 @@ function ImageAnnotator({ id }) {
             })
         }
         let response = await fetch("http://localhost:5000/predict", options)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (response == undefined) return
         let base64mask = await response.text()
         setMask(base64mask)
         setLoading(false)
@@ -238,7 +241,7 @@ function ImageAnnotator({ id }) {
                                 src={imageUrl}
                                 alt=""
                                 style={{
-                                    maskImage: mask ? `url('${mask}')` : null, 
+                                    maskImage: mask ? `url('${mask}')` : null,
                                     WebkitMaskImage: mask ? `url('${mask}')` : null,
                                 }}
                             ></img>
@@ -250,6 +253,7 @@ function ImageAnnotator({ id }) {
                     </Stack>
                 }
                 <ImageDialog
+                    triggerSnackbar={triggerSnackbar}
                     url={url}
                     open={open}
                     category={category}

@@ -1,10 +1,11 @@
 import { Box, Grid, Paper } from '@mui/material';
 import React from 'react';
 import FileDisplay from './FileDisplay';
+import { BACKEND_ERR } from './Errors';
 
 
 const MediaSegmentDetails = (props) => {
-    const { objectId, loading, setLoading, filetype, filename, details } = props
+    const { triggerSnackbar, objectId, loading, setLoading, filetype, filename, details } = props
 
     const [segments, setSegments] = React.useState([])
 
@@ -19,6 +20,8 @@ const MediaSegmentDetails = (props) => {
                 })
             }
             let response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             let data = await response.json()
 
             console.log(data)
@@ -32,9 +35,11 @@ const MediaSegmentDetails = (props) => {
                 })
             }
             response = await fetch("http://localhost:8080/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
             data = await response.json()
 
-            setSegments(data.results.map(d => ({url: d.s, category: d.o.replace("^^String", "")})))
+            setSegments(data.results.map(d => ({ url: d.s, category: d.o.replace("^^String", "") })))
         }
 
         fetchSegments();
@@ -66,7 +71,7 @@ const MediaSegmentDetails = (props) => {
                             <img
                                 src={s.url.replace("<", "").replace(">", "") + "/preview"}
                                 key={i}
-                                height='80%' width='100%' 
+                                height='80%' width='100%'
                                 style={{ objectFit: 'scale-down', cursor: 'pointer' }}
                                 onClick={() => window.open(s.url.replace("<", "").replace(">", ""), "_blank")}
                             />

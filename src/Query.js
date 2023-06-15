@@ -1,11 +1,12 @@
-import { Autocomplete, Box, CircularProgress, Grid, IconButton, Paper, Stack, TextField } from '@mui/material';
+import { Box, CircularProgress, IconButton, Stack, TextField } from '@mui/material';
 import React from 'react';
 import SearchIcon from '@mui/icons-material/Search';
 import ImageSegmentDetails from './ImageSegmentDetails';
 import { useNavigate } from 'react-router';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 
 
-const Query = () => {
+const Query = ({ triggerSnackbar }) => {
     const navigate = useNavigate();
 
     const [loading, setLoading] = React.useState(false);
@@ -45,12 +46,16 @@ const Query = () => {
             })
         }
         let response = await fetch("http://localhost:8080/query/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
         let data = await response.json()
         return data.results.map(r => r.o)
     }
 
     const searchSegments = async () => {
         let seg_embed = await fetch("http://localhost:5000/embedding/" + segmentQuery)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (seg_embed == undefined) return
         let embedding = await seg_embed.text()
         let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
 
@@ -64,6 +69,8 @@ const Query = () => {
             })
         }
         let response = await fetch("http://localhost:8080/query/knn", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
         let data = await response.json()
         console.log(data)
 
@@ -78,6 +85,8 @@ const Query = () => {
 
     const searchImages = async () => {
         let seg_embed = await fetch("http://localhost:5000/embedding/" + imageQuery)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (seg_embed == undefined) return
         let image_embedding = await seg_embed.text()
         let vector = image_embedding.slice(1, image_embedding.length - 2).split(",").map(v => Number(v))
 
@@ -91,6 +100,8 @@ const Query = () => {
             })
         }
         let response = await fetch("http://localhost:8080/query/knn", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
         console.log(response)
         let data = await response.json()
         console.log(data)
@@ -131,6 +142,7 @@ const Query = () => {
                         {images.map(s => (
                             <Box sx={{ cursor: 'pointer' }} onClick={() => navigate(s.replace("<http://localhost:8080", "").replace(">", ""))}>
                                 <ImageSegmentDetails
+                                    triggerSnackbar={triggerSnackbar}
                                     objectId={s.replace("<http://localhost:8080/", "").replace(">", "")}
                                     setLoading={() => { }}
                                     limitSegments={segments}
