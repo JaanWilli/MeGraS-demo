@@ -7,9 +7,6 @@ import ReactAudioPlayer from 'react-audio-player';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 
-import AudiotrackIcon from '@mui/icons-material/Audiotrack';
-import OndemandVideoIcon from '@mui/icons-material/OndemandVideo';
-
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.js',
     import.meta.url,
@@ -72,16 +69,13 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
     }
 
     const previewFile = () => {
-        if (filetype.startsWith("image") || filetype.startsWith("video") || filetype === "application/pdf") {
+        if (filetype.startsWith("image") || filetype.startsWith("video") || filetype.startsWith("audio") || filetype === "application/pdf") {
             return <img
                 height='100%'
                 width='100%'
                 src={filedata + "/preview"}
                 style={{ objectFit: 'scale-down' }}
             />
-        } else if (filetype.startsWith("audio")) {
-            return <AudiotrackIcon />
-            return <AudiotrackIcon />
         } else if (filename.endsWith(".obj")) {
             return (
                 <Box height={500} width={500}>

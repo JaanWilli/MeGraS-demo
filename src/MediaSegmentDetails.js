@@ -58,6 +58,7 @@ const MediaSegmentDetails = (props) => {
                 alignItems='center'
                 spacing={2}
                 mt={2}
+                mb={5}
             >
                 {segments.map((s, i) => (
                     <Grid item xs={2}>
@@ -65,7 +66,8 @@ const MediaSegmentDetails = (props) => {
                             <img
                                 src={s.url.replace("<", "").replace(">", "") + "/preview"}
                                 key={i}
-                                height='80%' width='100%' style={{ objectFit: 'scale-down' }}
+                                height='80%' width='100%' 
+                                style={{ objectFit: 'scale-down', cursor: 'pointer' }}
                                 onClick={() => window.open(s.url.replace("<", "").replace(">", ""), "_blank")}
                             />
                             <Box>{s.category}</Box>

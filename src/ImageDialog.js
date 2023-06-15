@@ -5,7 +5,7 @@ import CloseIcon from '@mui/icons-material/Close';
 function ImageDialog(props) {
     const { open, url, category, onClose } = props
 
-    const [loading, setLoading] = React.useState(true);
+    const [loading, setLoading] = React.useState(false);
     const [redirectUrl, setRedirectUrl] = React.useState();
 
     React.useEffect(() => {
@@ -41,6 +41,7 @@ function ImageDialog(props) {
         }
 
         if (open) {
+            setLoading(true)
             sendMedia();
             setLoading(false);
         }
