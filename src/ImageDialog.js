@@ -2,7 +2,8 @@ import { Box, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton }
 import React from "react";
 import CloseIcon from '@mui/icons-material/Close';
 
-function ImageDialog({ open, url, category, onClose }) {
+function ImageDialog(props) {
+    const { open, url, category, onClose } = props
 
     const [loading, setLoading] = React.useState(true);
     const [redirectUrl, setRedirectUrl] = React.useState();
@@ -12,18 +13,28 @@ function ImageDialog({ open, url, category, onClose }) {
             let response = await fetch(url)
             if (response.ok) {
                 setRedirectUrl(response.url)
+                let quads = []
+
+                quads.push({
+                    "s": "<" + response.url + ">",
+                    "p": "<https://schema.org/category>",
+                    "o": category + "^^String"
+                })
+
+                let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+                let embedding = await embed_response.text()
+                quads.push({
+                    "s": "<" + response.url + ">",
+                    "p": "<http://megras.org/schema#categoryVector>",
+                    "o": embedding.trim()
+                })
 
                 var options = {
                     method: 'POST',
                     body: JSON.stringify({
-                        "quads": [{
-                            "s": "<" + response.url + ">",
-                            "p": "<https://schema.org/category>",
-                            "o": category + "^^String"
-                        }]
+                        "quads": quads
                     })
                 }
-                console.log(options)
                 let res = await fetch("http://localhost:8080/add/quads", options)
                 console.log(res)
             }

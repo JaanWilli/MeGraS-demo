@@ -1,9 +1,11 @@
-import { Box, Button, CircularProgress, Grid, IconButton, Stack } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Stack, TextField } from '@mui/material';
 import './App.css';
 import React from 'react';
 import { useNavigate } from 'react-router';
 import FileDisplay from './FileDisplay';
 import FileSelect from './FileSelect';
+
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 
 const ImageUpload = () => {
@@ -13,11 +15,13 @@ const ImageUpload = () => {
     const [filedata, setFiledata] = React.useState();
     const [filetype, setFiletype] = React.useState();
     const [fileID, setFileID] = React.useState();
+    const [caption, setCaption] = React.useState();
+    const [captionLoading, setCaptionLoading] = React.useState(false);
+    const [captionSent, setCaptionSent] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
 
     const handleFileUpload = (files) => {
         if (files.length == 1) {
-            console.log(files[0])
             setFile(files[0])
             setFiledata(URL.createObjectURL(files[0]))
             setFiletype(files[0].type)
@@ -29,6 +33,37 @@ const ImageUpload = () => {
         setFiledata()
         setFiletype()
         setFileID()
+        setCaption()
+        setCaptionSent(false)
+    }
+
+    const generateCaption = async () => {
+        setCaptionLoading(true)
+        let response = await fetch("http://localhost:5000/caption/" + fileID)
+        let caption = await response.text()
+        setCaption(caption)
+        setCaptionLoading(false)
+    }
+
+    const sendCaption = async () => {
+        let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+        let embedding = await embed_response.text()
+
+        var options = {
+            method: 'POST',
+            body: JSON.stringify({
+                "quads": [{
+                    "s": "<http://localhost:8080/" + fileID + ">",
+                    "p": "<http://megras.org/schema#captionVector>",
+                    "o": embedding.trim()
+                }]
+            })
+        }
+        let response = await fetch("http://localhost:8080/add/quads", options)
+        console.log(response)
+        if (response.ok) {
+            setCaptionSent(true)
+        }
     }
 
     const confirm = () => {
@@ -57,7 +92,7 @@ const ImageUpload = () => {
             </div>
             <div className="App-content">
                 {!file &&
-                    <FileSelect 
+                    <FileSelect
                         handleFileUpload={handleFileUpload}
                         multiple={false}
                     />
@@ -73,12 +108,31 @@ const ImageUpload = () => {
                     </Stack>
                 }
                 {loading && <CircularProgress />}
-                {fileID && 
+                {fileID &&
                     <Stack alignItems="center" spacing={2} direction="column">
                         <Box>Successfully added <a href={"http://localhost:8080/" + fileID} target="_blank">{file.name}</a></Box>
+                        {filetype.startsWith("image") &&
+                            <>
+                                <img src={"http://localhost:8080/" + fileID} />
+                                {!captionSent &&
+                                    <Stack spacing={2} mt={2} direction="row" alignItems="center">
+                                        <Box>Caption:</Box>
+                                        <TextField sx={{ width: '20vw' }} multiline value={caption} onChange={(e) => setCaption(e.target.value)} />
+                                        {captionLoading ?
+                                            <CircularProgress />
+                                            :
+                                            <IconButton onClick={generateCaption}><AutoAwesomeIcon /></IconButton>
+                                        }
+                                        <Button variant='contained' color='secondary' disabled={!caption} onClick={sendCaption}>Send</Button>
+                                    </Stack>
+                                }
+                            </>
+                        }
                         <Stack spacing={2} direction="row">
                             <Button variant='contained' onClick={cancel}>Back</Button>
-                            <Button variant='contained' color='secondary' onClick={() => navigate("/segment/" + fileID)}>Segment</Button>
+                            {["image/png", "video/webm"].includes(filetype) &&
+                                <Button variant='contained' color='secondary' onClick={() => navigate("/segment/" + fileID)}>Segment</Button>
+                            }
                         </Stack>
                     </Stack>
                 }

@@ -8,7 +8,7 @@ const SegmentImage = ({ url, x, y, opacity }) => {
 };
 
 const ImageSegmentDetails = (props) => {
-    const { objectId, loading, setLoading, details } = props
+    const { objectId, loading, setLoading, details, limitSegments, hideEmpty=false } = props
 
     const stageref = React.useRef();
     const tooltipref = React.useRef();
@@ -18,6 +18,8 @@ const ImageSegmentDetails = (props) => {
 
     const [segments, setSegments] = React.useState([])
     const [highlightSegment, setHighlight] = React.useState()
+
+    const [showImage, setShowImage] = React.useState(true)
 
     React.useEffect(() => {
         async function fetchSegments() {
@@ -32,12 +34,17 @@ const ImageSegmentDetails = (props) => {
             let response = await fetch("http://localhost:8080/query/quads", options)
             let data = await response.json()
 
-            console.log(data)
+            let segmentURIs = data.results.map(d => d.s)
+            
+            let relevantSegments = limitSegments ? segmentURIs.filter(v => limitSegments.includes(v)) : segmentURIs;
+            if (hideEmpty && relevantSegments.length == 0) {
+                setShowImage(false)
+            }
 
             options = {
                 method: 'POST',
                 body: JSON.stringify({
-                    "s": data.results.map(d => d.s),
+                    "s": relevantSegments,
                     "p": ["<https://schema.org/category>", "<http://megras.org/schema#segmentBounds>"],
                     "o": []
                 })
@@ -66,8 +73,6 @@ const ImageSegmentDetails = (props) => {
             setSegments(Array.from(groupedMap, ([url, properties]) => ({ url, ...properties })))
         }
 
-        console.log(imageStatus)
-
         if (imageStatus == "loaded") {
             fetchSegments();
             setLoading(false);
@@ -89,7 +94,7 @@ const ImageSegmentDetails = (props) => {
 
     return (
         <>
-            {imageStatus === "loaded" ?
+            {imageStatus === "loaded" && showImage ?
                 <Stage ref={stageref} width={image.width} height={image.height}>
                     <Layer>
                         <Image image={image} opacity={highlightSegment === undefined ? 1 : 0.3} />

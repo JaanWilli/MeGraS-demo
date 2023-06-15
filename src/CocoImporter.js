@@ -1,12 +1,11 @@
 import React from 'react';
 import './App.css';
-import ImageUploading from 'react-images-uploading';
-import { Box, Button, CircularProgress, Grid, IconButton, Paper, Stack, Typography } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import { Box, Button, CircularProgress, Grid, Paper, Stack, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
 import instances from './instances_val2017.json'
+import captions from './captions_val2017.json'
 import { useNavigate } from 'react-router';
 import FileSelect from './FileSelect';
 
@@ -16,6 +15,7 @@ const CocoImporter = () => {
 
     const [images, setImages] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
+    const [progress, setProgress] = React.useState(0);
     const [addedSegments, setAddedSegments] = React.useState(0);
 
     const categories = new Map(
@@ -30,11 +30,19 @@ const CocoImporter = () => {
         }),
     );
 
+    const imageCaptions = new Map()
+    captions.annotations.forEach(a => {
+        if (!imageCaptions.has(a.image_id)) {
+            imageCaptions.set(a.image_id, [])
+        }
+        imageCaptions.get(a.image_id).push(a.caption)
+    })
+
+
     const handleFileUpload = (images) => {
         const imageList = [...images]
         const imageObjectList = imageList.map(i => ({ "file": i, "data": URL.createObjectURL(i) }))
         setImages(imageObjectList);
-        console.log(imageObjectList);
     };
 
     const removeImage = (idx) => {
@@ -47,18 +55,36 @@ const CocoImporter = () => {
         var c = 0
         let quads = []
         setLoading(true)
+        var current = 0
 
         for await (let image of images) {
+            current += 1
+            setProgress(current / images.length * 100)
+
             var body = new FormData()
             body.append("file", image["file"])
             let filename = image["file"]["name"]
-            let imageid = filename.replace("0", "").replace(".jpg", "")
+            console.log(filename)
+            let imageid = filename.replaceAll("0", "").replace(".jpg", "")
 
             var response = await fetch("http://localhost:8080/add/file", { method: 'POST', body: body })
             if (response.ok) {
                 let data = await response.json()
-                console.log(data)
                 let imageUrl = "http://localhost:8080/" + data[filename]["uri"]
+
+                let captions = imageCaptions.get(Number(imageid))
+                if (captions == undefined) {
+                    continue
+                }
+                for (let caption of captions) {
+                    let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+                    let embedding = await embed_response.text()
+                    quads.push({
+                        "s": "<" + imageUrl + ">",
+                        "p": "<http://megras.org/schema#captionVector>",
+                        "o": embedding.trim()
+                    })
+                }
 
                 for await (let a of instances["annotations"]) {
                     if (a.image_id == imageid) {
@@ -72,12 +98,20 @@ const CocoImporter = () => {
 
                             response = await fetch(segmenturl)
                             if (response.ok) {
-                                console.log(response)
                                 c += 1
+                                let category = categories.get(a.category_id)
                                 quads.push({
                                     "s": "<" + response.url + ">",
                                     "p": "<https://schema.org/category>",
-                                    "o": categories.get(a.category_id) + "^^String"
+                                    "o": category + "^^String"
+                                })
+
+                                let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+                                let embedding = await embed_response.text()
+                                quads.push({
+                                    "s": "<" + response.url + ">",
+                                    "p": "<http://megras.org/schema#categoryVector>",
+                                    "o": embedding.trim()
                                 })
                             }
                         }
@@ -111,7 +145,7 @@ const CocoImporter = () => {
                 <div className='App-subtitle'>Import images and segments from the <a href="https://cocodataset.org/" target="_blank">COCO</a> dataset.</div>
             </div>
             <div className="App-content">
-                {loading ? <CircularProgress /> :
+                {loading ? <CircularProgress variant='determinate' value={progress} /> :
                     <>
                         {addedSegments == 0 &&
                             <FileSelect
@@ -130,10 +164,10 @@ const CocoImporter = () => {
                                 spacing={10}
                             >
                                 {images.map((img, i) => {
-                                    let cols = images.length < 6 ? 12 / (images.length + 1) : 2
+                                    let cols = images.length < 6 ? 12 / (images.length + 1) : 3
                                     return (
                                         <Grid item key={i} xs={cols}>
-                                            <Paper onClick={() => removeImage(i)} sx={{ height: '16vh', cursor: 'pointer' }}>
+                                            <Paper onClick={() => removeImage(i)} sx={{ height: '14vh', cursor: 'pointer' }}>
                                                 <img
                                                     src={img['data']}
                                                     key={i}
