@@ -1,7 +1,8 @@
-import { Box, Grid, Paper } from '@mui/material';
+import { Box, Grid, IconButton, Paper, Stack } from '@mui/material';
 import React from 'react';
 import FileDisplay from './FileDisplay';
 import { BACKEND_ERR } from './Errors';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 
 const MediaSegmentDetails = (props) => {
@@ -51,6 +52,22 @@ const MediaSegmentDetails = (props) => {
         return () => { }
     }, [])
 
+    const deleteSegment = async (i) => {
+        let toDelete = segments[i]
+        console.log(toDelete)
+        let id = toDelete.url.replace("<http://localhost:8080/", "").replace(">", "")
+        let response = await fetch("http://localhost:8080/" + id, { method: 'DELETE' })
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        if (response.ok) {
+            let newSegments = [...segments]
+            newSegments.splice(i, 1)
+            setSegments(newSegments)
+            console.log(newSegments)
+        } else {
+            console.log(response.statusText)
+        }
+    }
 
     return (
         <>
@@ -79,7 +96,7 @@ const MediaSegmentDetails = (props) => {
                                 style={{ objectFit: 'scale-down', cursor: 'pointer' }}
                                 onClick={() => window.open(s.url.replace("<", "").replace(">", ""), "_blank")}
                             />
-                            <Box>{s.category}</Box>
+                            <IconButton onClick={() => deleteSegment(i)}><DeleteIcon /></IconButton>
                         </Paper>
                     </Grid>))
                 }

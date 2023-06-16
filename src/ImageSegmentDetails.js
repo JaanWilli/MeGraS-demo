@@ -115,6 +115,7 @@ const ImageSegmentDetails = (props) => {
         if (response == undefined) return
         if (response.ok) {
             segments.splice(highlightSegment, 1)
+            setSegments(segments)
             setHover(true)
             setHighlight()
         } else {
