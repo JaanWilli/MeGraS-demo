@@ -3,6 +3,7 @@ import { useParams } from 'react-router';
 import ImageAnnotator from './ImageAnnotator';
 import VideoAnnotator from './VideoAnnotator';
 import { BACKEND_ERR } from './Errors';
+import AudioAnnotator from './AudioAnnotator';
 
 
 function MediaAnnotator({ triggerSnackbar }) {
@@ -27,6 +28,7 @@ function MediaAnnotator({ triggerSnackbar }) {
         <>
             {type === "image/png" && <ImageAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
             {type === "video/webm" && <VideoAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
+            {type === "audio/webm" && <AudioAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
         </>
     );
 }

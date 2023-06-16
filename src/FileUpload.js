@@ -137,7 +137,7 @@ const ImageUpload = ({ triggerSnackbar }) => {
                         }
                         <Stack spacing={2} direction="row">
                             <Button variant='contained' onClick={cancel}>Back</Button>
-                            {["image/png", "video/webm"].includes(filetype) &&
+                            {["image/png", "video/webm", "audio/webm"].includes(filetype) &&
                                 <Button variant='contained' color='secondary' onClick={() => navigate("/segment/" + fileID)}>Segment</Button>
                             }
                         </Stack>

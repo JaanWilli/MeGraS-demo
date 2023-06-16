@@ -37,9 +37,13 @@ const MediaSegmentDetails = (props) => {
             response = await fetch("http://localhost:8080/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
-            data = await response.json()
+            let category_data = await response.json()
 
-            setSegments(data.results.map(d => ({ url: d.s, category: d.o.replace("^^String", "") })))
+            if (category_data.results.length > 0) {
+                setSegments(category_data.results.map(d => ({ url: d.s, category: d.o.replace("^^String", "") })))
+            } else {
+                setSegments(data.results.map(r => ({url: r.s, category: ""})))
+            }
         }
 
         fetchSegments();

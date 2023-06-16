@@ -72,7 +72,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
             >
                 Delete Medium
             </Button>
-            {["image/png", "video/webm"].includes(filetype) &&
+            {["image/png", "video/webm", "audio/webm"].includes(filetype) &&
                 <Button
                     variant='contained'
                     color='secondary'

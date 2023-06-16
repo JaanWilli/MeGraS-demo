@@ -94,6 +94,7 @@ const ImageSegmentDetails = (props) => {
             tooltiptextref.current.text(segment.category)
             tooltipref.current.x(segment.x)
             tooltipref.current.y(segment.y)
+            tooltipref.current.visible(segment.category != "")
         }
     }
 
