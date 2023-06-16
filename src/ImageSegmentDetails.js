@@ -2,6 +2,8 @@ import React from 'react';
 import { Stage, Layer, Rect, Text, Image, Label, Tag } from 'react-konva';
 import useImage from 'use-image';
 import { BACKEND_ERR } from './Errors';
+import { Button } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const SegmentImage = ({ url, x, y, opacity }) => {
     const [image] = useImage(url);
@@ -19,6 +21,7 @@ const ImageSegmentDetails = (props) => {
 
     const [segments, setSegments] = React.useState([])
     const [highlightSegment, setHighlight] = React.useState()
+    const [hover, setHover] = React.useState(true)
 
     const [showImage, setShowImage] = React.useState(true)
 
@@ -86,52 +89,95 @@ const ImageSegmentDetails = (props) => {
     }, [imageStatus])
 
     const toggleSegment = (idx) => {
-        if (highlightSegment == idx) {
+        if (hover) {
+            if (highlightSegment == idx) {
+                setHighlight()
+            } else {
+                setHighlight(idx)
+                let segment = segments[idx]
+                tooltiptextref.current.text(segment.category)
+                tooltipref.current.x(segment.x)
+                tooltipref.current.y(segment.y)
+                tooltipref.current.visible(segment.category != "")
+            }
+        }
+    }
+
+    const selectSegment = () => {
+        setHover(!hover)
+    }
+
+    const deleteSegment = async () => {
+        let toDelete = segments[highlightSegment]
+        let id = toDelete.url.replace("<http://localhost:8080/", "").replace(">", "")
+        let response = await fetch("http://localhost:8080/" + id, { method: 'DELETE' })
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        if (response.ok) {
+            segments.splice(highlightSegment, 1)
+            setHover(true)
             setHighlight()
         } else {
-            setHighlight(idx)
-            let segment = segments[idx]
-            tooltiptextref.current.text(segment.category)
-            tooltipref.current.x(segment.x)
-            tooltipref.current.y(segment.y)
-            tooltipref.current.visible(segment.category != "")
+            console.log(response.statusText)
         }
     }
 
     return (
         <>
             {imageStatus === "loaded" && showImage ?
-                <Stage ref={stageref} width={image.width} height={image.height}>
-                    <Layer>
-                        <Image image={image} opacity={highlightSegment === undefined ? 1 : 0.3} />
-                        {segments.map((s, i) => (
-                            <>
-                                <SegmentImage
-                                    url={s.url.replace("<", "").replace(">", "")}
-                                    x={s.x} y={s.y}
-                                    opacity={highlightSegment === i ? 1 : 0.3}
-                                />
-                                <Rect x={s.x} y={s.y}
-                                    width={s.w} height={s.h}
-                                    onMouseOver={() => toggleSegment(i)}
-                                    onMouseOut={() => toggleSegment(i)}
-                                    stroke="red"
-                                    visible={highlightSegment === undefined || highlightSegment === i}
-                                />
-                            </>
-                        ))}
-                    </Layer>
-                    <Layer visible={highlightSegment !== undefined}>
-                        <Label ref={tooltipref} >
-                            <Tag fill='#37d2c6'></Tag>
-                            <Text ref={tooltiptextref} text='' color="white" padding={5} fontSize={18} />
-                        </Label>
-                    </Layer>
-                </Stage>
+                <>
+                    <Stage ref={stageref} width={image.width} height={image.height}>
+                        <Layer>
+                            <Image image={image} opacity={highlightSegment === undefined ? 1 : 0.3} />
+                            {segments.map((s, i) => (
+                                <>
+                                    <SegmentImage
+                                        url={s.url.replace("<", "").replace(">", "")}
+                                        x={s.x} y={s.y}
+                                        opacity={highlightSegment === i ? 1 : 0.3}
+                                    />
+                                    <Rect x={s.x} y={s.y}
+                                        width={s.w} height={s.h}
+                                        onMouseOver={(e) => {
+                                            toggleSegment(i)
+                                            const container = e.target.getStage().container();
+                                            container.style.cursor = "pointer";
+                                        }}
+                                        onMouseOut={(e) => {
+                                            toggleSegment(i)
+                                            const container = e.target.getStage().container();
+                                            container.style.cursor = "default";
+                                        }}
+                                        onClick={selectSegment}
+                                        stroke="red"
+                                        strokeWidth={!hover && highlightSegment === i ? 4 : 1}
+                                        visible={highlightSegment === undefined || highlightSegment === i}
+                                    />
+                                </>
+                            ))}
+                        </Layer>
+                        <Layer visible={highlightSegment !== undefined}>
+                            <Label ref={tooltipref} >
+                                <Tag fill='#37d2c6'></Tag>
+                                <Text ref={tooltiptextref} text='' color="white" padding={5} fontSize={18} />
+                            </Label>
+                        </Layer>
+                    </Stage>
+                    <Button
+                        sx={{margin: 2}}
+                        variant='contained'
+                        color='warning'
+                        disabled={hover}
+                        startIcon={<DeleteIcon />}
+                        onClick={deleteSegment}
+                    >
+                        Delete Segment
+                    </Button>
+                </>
                 :
                 null
             }
-
+            <br />
             {details}
         </>
     )
