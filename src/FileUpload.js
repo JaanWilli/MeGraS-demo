@@ -59,9 +59,15 @@ const ImageUpload = ({ triggerSnackbar }) => {
             body: JSON.stringify({
                 "quads": [{
                     "s": "<http://localhost:8080/" + fileID + ">",
+                    "p": "<https://schema.org/caption>",
+                    "o": caption + "^^String"
+                },
+                {
+                    "s": "<http://localhost:8080/" + fileID + ">",
                     "p": "<http://megras.org/schema#captionVector>",
                     "o": embedding.trim()
-                }]
+                }
+            ]
             })
         }
         let response = await fetch("http://localhost:8080/add/quads", options)

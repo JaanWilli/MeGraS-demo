@@ -16,6 +16,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
     const [loading, setLoading] = React.useState(true);
     const [filename, setFilename] = React.useState()
     const [filetype, setFiletype] = React.useState()
+    const [captions, setCaptions] = React.useState([])
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -32,13 +33,17 @@ const MediaDetails = ({ triggerSnackbar }) => {
             if (response == undefined) return
             let data = await response.json()
 
+            let c = []
             data.results.forEach((res) => {
                 if (res.p === "<http://megras.org/schema#canonicalMimeType>") {
                     setFiletype(res.o.replace("^^String", ""))
                 } else if (res.p === "<http://megras.org/schema#fileName>") {
                     setFilename(res.o.replace("^^String", ""))
+                } else if (res.p === "<https://schema.org/caption>") {
+                    c.push(res.o.replace("^^String", ""))
                 }
             })
+            setCaptions(c)
 
             console.log(data)
         }
@@ -64,6 +69,13 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 <Box>{filename}</Box>
                 <Box>{filetype}</Box>
             </Stack>
+            {captions.length > 0 &&
+                <Stack direction="column">
+                    {captions.map((c) => (
+                        <Box>{c}</Box>
+                    ))}
+                </Stack>
+            }
             <Button
                 variant='contained'
                 color='warning'
@@ -96,6 +108,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     <>
                         {filetype.startsWith("image") ?
                             <ImageSegmentDetails
+                                allowDelete={true}
                                 triggerSnackbar={triggerSnackbar}
                                 objectId={objectId}
                                 setLoading={setLoading}

@@ -11,7 +11,7 @@ const SegmentImage = ({ url, x, y, opacity }) => {
 };
 
 const ImageSegmentDetails = (props) => {
-    const { triggerSnackbar, objectId, loading, setLoading, details, limitSegments, hideEmpty = false } = props
+    const { allowDelete, triggerSnackbar, objectId, loading, setLoading, details, limitSegments, hideEmpty = false } = props
 
     const stageref = React.useRef();
     const tooltipref = React.useRef();
@@ -135,7 +135,7 @@ const ImageSegmentDetails = (props) => {
                                     <SegmentImage
                                         url={s.url.replace("<", "").replace(">", "")}
                                         x={s.x} y={s.y}
-                                        opacity={highlightSegment === i ? 1 : 0.3}
+                                        opacity={highlightSegment === i ? 1 : 0}
                                     />
                                     <Rect x={s.x} y={s.y}
                                         width={s.w} height={s.h}
@@ -164,16 +164,18 @@ const ImageSegmentDetails = (props) => {
                             </Label>
                         </Layer>
                     </Stage>
-                    <Button
-                        sx={{margin: 2}}
-                        variant='contained'
-                        color='warning'
-                        disabled={hover}
-                        startIcon={<DeleteIcon />}
-                        onClick={deleteSegment}
-                    >
-                        Delete Segment
-                    </Button>
+                    {allowDelete &&
+                        <Button
+                            sx={{ margin: 2 }}
+                            variant='contained'
+                            color='warning'
+                            disabled={hover}
+                            startIcon={<DeleteIcon />}
+                            onClick={deleteSegment}
+                        >
+                            Delete Segment
+                        </Button>
+                    }
                 </>
                 :
                 null

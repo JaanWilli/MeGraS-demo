@@ -142,6 +142,7 @@ const Query = ({ triggerSnackbar }) => {
                         {images.map(s => (
                             <Box sx={{ cursor: 'pointer' }} onClick={() => navigate(s.replace("<http://localhost:8080", "").replace(">", ""))}>
                                 <ImageSegmentDetails
+                                    allowDelete={false}
                                     triggerSnackbar={triggerSnackbar}
                                     objectId={s.replace("<http://localhost:8080/", "").replace(">", "")}
                                     setLoading={() => { }}

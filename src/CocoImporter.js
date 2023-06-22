@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { Box, Button, CircularProgress, Grid, Paper, Stack, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Grid, IconButton, Paper, Stack, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
@@ -80,6 +80,12 @@ const CocoImporter = ({ triggerSnackbar }) => {
                     continue
                 }
                 for (let caption of captions) {
+                    quads.push({
+                        "s": "<" + imageUrl + ">",
+                        "p": "<https://schema.org/caption>",
+                        "o": caption + "^^String"
+                    })
+
                     let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
                         .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
                     if (embed_response == undefined) return
@@ -144,6 +150,8 @@ const CocoImporter = ({ triggerSnackbar }) => {
     const addMore = () => {
         setImages([])
         setAddedSegments(0)
+        setLoading(false)
+        setProgress(0)
     }
 
     return (
@@ -166,16 +174,18 @@ const CocoImporter = ({ triggerSnackbar }) => {
                         {addedSegments == 0 &&
                             <Grid
                                 container
-                                maxWidth={'60vw'}
+                                maxWidth={'50vw'}
                                 justifyContent='center'
                                 alignItems='flex-end'
-                                spacing={10}
+                                spacing={2}
                             >
                                 {images.map((img, i) => {
                                     let cols = images.length < 6 ? 12 / (images.length + 1) : 3
                                     return (
                                         <Grid item key={i} xs={cols}>
-                                            <Paper onClick={() => removeImage(i)} sx={{ height: '14vh', cursor: 'pointer' }}>
+                                            <Paper sx={{ height: '16vh' }}>
+                                                <Stack direction="column" height="100%" alignItems="center" p={0.5}>
+
                                                 <img
                                                     src={img['data']}
                                                     key={i}
@@ -184,7 +194,11 @@ const CocoImporter = ({ triggerSnackbar }) => {
                                                     width='100%'
                                                     style={{ objectFit: 'scale-down' }}
                                                 />
+                                                <Stack direction="row" alignItems="center">
                                                 <Typography>{img.file.name}</Typography>
+                                                    <IconButton onClick={() => removeImage(i)}><DeleteIcon /></IconButton>
+                                                </Stack>
+                                                </Stack>
                                             </Paper>
                                         </Grid>
                                     )
