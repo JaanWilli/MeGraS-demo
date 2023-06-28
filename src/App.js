@@ -12,8 +12,10 @@ import HomeIcon from '@mui/icons-material/Home';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import SearchIcon from '@mui/icons-material/Search';
+import CategoryIcon from '@mui/icons-material/Category';
 import Query from './Query';
 import MediaAnnotator from './MediaAnnotator';
+import CollageEditor from './CollageEditor';
 
 const App = () => {
 
@@ -44,6 +46,7 @@ const App = () => {
           <Link to="/add"><Button variant='contained'><FileUploadIcon /></Button></Link>
           <Link to="/coco"><Button variant='contained'><CloudDownloadIcon /></Button></Link>
           <Link to="/query"><Button variant='contained'><SearchIcon /></Button></Link>
+          <Link to="/collage"><Button variant='contained'><CategoryIcon /></Button></Link>
         </div>
         <Routes>
           <Route path="/" element={<Library triggerSnackbar={triggerSnackbar} />} />
@@ -52,6 +55,7 @@ const App = () => {
           <Route path="/segment/:id" element={<MediaAnnotator triggerSnackbar={triggerSnackbar} />} />
           <Route path="/coco" element={<CocoImporter triggerSnackbar={triggerSnackbar} />} />
           <Route path="/query" element={<Query triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/collage" element={<CollageEditor triggerSnackbar={triggerSnackbar} />} />
         </Routes>
 
         <Snackbar
