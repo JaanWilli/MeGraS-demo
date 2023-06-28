@@ -188,14 +188,22 @@ const CollageEditor = ({ triggerSnackbar }) => {
         console.log(images)
         for (let image of images) {
             var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            img.setAttribute('height', image.attrs.image.height);
-            img.setAttribute('width', image.attrs.image.width);
+            img.setAttribute('height', image.attrs.height);
+            img.setAttribute('width', image.attrs.width);
             img.setAttribute('href', image.attrs.url);
+            img.setAttribute('preserveAspectRatio', 'none')
             img.setAttribute('x', image.attrs.x);
             img.setAttribute('y', image.attrs.y);
+            if (image.attrs.width) {
+                img.setAttribute("transform", `rotate(${image.attrs.rotation} ${image.attrs.x} ${image.attrs.y})`)
+                img.setAttribute('height', image.attrs.height);
+                img.setAttribute('width', image.attrs.width);
+            } else {
+                img.setAttribute('height', image.attrs.image.height);
+                img.setAttribute('width', image.attrs.image.width);
+            }
             svg.appendChild(img);
         }
-
 
         const svgtext = new XMLSerializer().serializeToString(svg);
         console.log(svgtext)
@@ -250,7 +258,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                             />
                                         </Paper>
                                     </Grid>
-
                                 ))}
                             </Grid>
                             <Grid
@@ -276,7 +283,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                             />
                                         </Paper>
                                     </Grid>
-
                                 ))}
                             </Grid>
                         </Stack>
@@ -319,11 +325,10 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                 <IconButton onClick={deleteCanvas}><BackspaceIcon /></IconButton>
                             </Stack>
                             <Stack spacing={2}>
-                                <Button variant="contained" color='secondary' onClick={saveImage}><SaveIcon /></Button>
-                                <Button variant="contained" color='secondary' onClick={toSVG}><DownloadIcon /></Button>
+                                <Button variant="contained" color='secondary' disabled={selectedId} onClick={saveImage}><SaveIcon /></Button>
+                                <Button variant="contained" color='secondary' disabled={selectedId} onClick={toSVG}><DownloadIcon /></Button>
                             </Stack>
                         </Stack>
-
                     </Stack>
                 }
             </div>
