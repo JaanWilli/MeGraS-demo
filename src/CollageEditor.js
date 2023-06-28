@@ -6,8 +6,8 @@ import { BACKEND_ERR } from './Errors';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import BackspaceIcon from '@mui/icons-material/Backspace';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
-
+import SaveIcon from '@mui/icons-material/Save';
+import DownloadIcon from '@mui/icons-material/Download';
 
 
 // for details, see https://konvajs.org/docs/react/Transformer.html
@@ -154,23 +154,58 @@ const CollageEditor = ({ triggerSnackbar }) => {
         setHasCanvas(false)
     }
 
-    const saveImage = () => {
+    const saveImage = async () => {
         let dataURL = stageref.current.toDataURL()
-        fetch(dataURL)
-            .then(res => res.blob())
-            .then(blob => {
-                var data = new FormData()
-                data.append("file", blob, "collage.jpg")
+        let response = await fetch(dataURL)
+        if (response == undefined) return
+        let blob = await response.blob()
 
-                fetch("http://localhost:8080/add/file", { method: 'POST', body: data })
-                    .then(response => response.json())
-                    .then(data => {
-                        let uri = data["collage.jpg"]["uri"]
-                        window.open("http://localhost:8080/" + uri, '_blank').focus();
-                    }
-                    )
-                    .catch(e => triggerSnackbar(BACKEND_ERR, "error"))
-            })
+        var body = new FormData()
+        body.append("file", blob, "collage.jpg")
+
+        response = await fetch("http://localhost:8080/add/file", { method: 'POST', body: body })
+            .catch(e => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        let data = await response.json()
+        let uri = data["collage.jpg"]["uri"]
+        window.open("http://localhost:8080/" + uri, '_blank').focus();
+    }
+
+    const toSVG = () => {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+        svg.setAttribute('height', height);
+        svg.setAttribute('width', width);
+
+        var bg = document.createElement('rect');
+        bg.setAttribute('height', '100%');
+        bg.setAttribute('width', '100%');
+        bg.setAttribute('fill', 'white');
+        svg.appendChild(bg)
+
+        let images = stageref.current.children[0].children
+        images = images.slice(1)
+        console.log(images)
+        for (let image of images) {
+            var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            img.setAttribute('height', image.attrs.image.height);
+            img.setAttribute('width', image.attrs.image.width);
+            img.setAttribute('href', image.attrs.url);
+            img.setAttribute('x', image.attrs.x);
+            img.setAttribute('y', image.attrs.y);
+            svg.appendChild(img);
+        }
+
+
+        const svgtext = new XMLSerializer().serializeToString(svg);
+        console.log(svgtext)
+        const blob = new Blob([svgtext], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url
+        a.download = "canvas.svg"
+        a.click()
+        window.URL.revokeObjectURL(url);
     }
 
     return (
@@ -283,7 +318,10 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                 <IconButton disabled={elements.length == 0} onClick={deleteAll}><ClearIcon /></IconButton>
                                 <IconButton onClick={deleteCanvas}><BackspaceIcon /></IconButton>
                             </Stack>
-                            <Button variant="contained" color='secondary' onClick={saveImage}><CheckBoxIcon /></Button>
+                            <Stack spacing={2}>
+                                <Button variant="contained" color='secondary' onClick={saveImage}><SaveIcon /></Button>
+                                <Button variant="contained" color='secondary' onClick={toSVG}><DownloadIcon /></Button>
+                            </Stack>
                         </Stack>
 
                     </Stack>
