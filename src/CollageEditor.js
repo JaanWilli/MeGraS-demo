@@ -1,4 +1,4 @@
-import { Box, Button, Grid, IconButton, Paper, Stack, TextField } from '@mui/material';
+import { Box, Button, Grid, IconButton, Paper, Stack, TextField, Tooltip } from '@mui/material';
 import React from 'react';
 import { Image, Layer, Rect, Stage, Transformer } from 'react-konva';
 import useImage from 'use-image';
@@ -8,6 +8,8 @@ import ClearIcon from '@mui/icons-material/Clear';
 import BackspaceIcon from '@mui/icons-material/Backspace';
 import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
+import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 
 // for details, see https://konvajs.org/docs/react/Transformer.html
@@ -111,7 +113,7 @@ const CollageEditor = ({ triggerSnackbar }) => {
 
 
     const [elements, setElements] = React.useState([]);
-    const [selectedId, selectShape] = React.useState(null);
+    const [selectedId, setSelected] = React.useState(null);
 
     const stageref = React.useRef();
     const backgroundRef = React.useRef();
@@ -120,10 +122,24 @@ const CollageEditor = ({ triggerSnackbar }) => {
         setHasCanvas(true)
     }
 
+    const moveElement = (up) => {
+        setSelected(null)
+        let elems = elements.slice()
+        let idx = elems.findIndex(e => e.id == selectedId)
+        let element = elems.splice(idx, 1)[0];
+        if (up) {
+            elems.splice(idx < elements.length - 1 ? idx + 1 : elements.length - 1, 0, element)
+        } else {
+            elems.splice(idx > 0 ? idx - 1 : 0, 0, element)
+        }
+        console.log(elems)
+        setElements(elems)
+    }
+
     const checkDeselect = (e) => {
         const clickedOnEmpty = e.target === backgroundRef.current;
         if (clickedOnEmpty) {
-            selectShape(null);
+            setSelected(null);
         }
     };
 
@@ -139,12 +155,12 @@ const CollageEditor = ({ triggerSnackbar }) => {
         let prev = elements
         let after = prev.filter(e => e.id !== selectedId)
         setElements(after)
-        selectShape(null)
+        setSelected(null)
     }
 
     const deleteAll = () => {
         setElements([])
-        selectShape(null)
+        setSelected(null)
     }
 
     const deleteCanvas = () => {
@@ -305,11 +321,12 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                             width={width}
                                             height={height}
                                             onSelect={() => {
-                                                selectShape(element.id);
+                                                setSelected(element.id);
                                             }}
                                             onChange={(newAttrs) => {
                                                 const els = elements.slice();
                                                 els[i] = newAttrs;
+                                                console.log(els)
                                                 setElements(els);
                                             }}
                                         />
@@ -320,13 +337,31 @@ const CollageEditor = ({ triggerSnackbar }) => {
                         </Stage>
                         <Stack direction="column" height={height} justifyContent="space-between">
                             <Stack spacing={2}>
-                                <IconButton disabled={!selectedId} onClick={deleteSelected}><DeleteIcon /></IconButton>
-                                <IconButton disabled={elements.length == 0} onClick={deleteAll}><ClearIcon /></IconButton>
-                                <IconButton onClick={deleteCanvas}><BackspaceIcon /></IconButton>
+                                <Tooltip title="Remove selected" placement="right">
+                                    <IconButton disabled={selectedId == null} onClick={deleteSelected}><DeleteIcon /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Remove all" placement="right">
+                                    <IconButton disabled={elements.length == 0} onClick={deleteAll}><ClearIcon /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Remove canvas" placement="right">
+                                    <IconButton onClick={deleteCanvas}><BackspaceIcon /></IconButton>
+                                </Tooltip>
                             </Stack>
                             <Stack spacing={2}>
-                                <Button variant="contained" color='secondary' disabled={selectedId} onClick={saveImage}><SaveIcon /></Button>
-                                <Button variant="contained" color='secondary' disabled={selectedId} onClick={toSVG}><DownloadIcon /></Button>
+                                <Tooltip title="Move to front" placement="right">
+                                    <IconButton disabled={selectedId == null} onClick={() => moveElement(true)}><ArrowDropUpIcon /></IconButton>
+                                </Tooltip>
+                                <Tooltip title="Move to back" placement="right">
+                                    <IconButton disabled={selectedId == null} onClick={() => moveElement(false)}><ArrowDropDownIcon /></IconButton>
+                                </Tooltip>
+                            </Stack>
+                            <Stack spacing={2}>
+                                <Tooltip title="Save" placement="right">
+                                    <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={saveImage}><SaveIcon /></Button>
+                                </Tooltip>
+                                <Tooltip title="Download as SVG" placement="right">
+                                    <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={toSVG}><DownloadIcon /></Button>
+                                </Tooltip>
                             </Stack>
                         </Stack>
                     </Stack>
