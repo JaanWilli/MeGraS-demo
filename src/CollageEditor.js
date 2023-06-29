@@ -2,7 +2,7 @@ import { Box, Button, Grid, IconButton, Paper, Stack, TextField, Tooltip } from 
 import React from 'react';
 import { Image, Layer, Rect, Stage, Transformer } from 'react-konva';
 import useImage from 'use-image';
-import { BACKEND_ERR } from './Errors';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import BackspaceIcon from '@mui/icons-material/Backspace';
@@ -10,6 +10,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 
 
 // for details, see https://konvajs.org/docs/react/Transformer.html
@@ -89,6 +90,14 @@ const CollageEditor = ({ triggerSnackbar }) => {
     const [allImages, setImages] = React.useState([])
     const [allSegments, setSegments] = React.useState([])
 
+    const [elements, setElements] = React.useState([]);
+    const [selectedId, setSelected] = React.useState(null);
+
+    const [query, setQuery] = React.useState();
+
+    const stageref = React.useRef();
+    const backgroundRef = React.useRef();
+
     React.useEffect(() => {
         async function fetchMedia() {
             let options = {
@@ -97,7 +106,7 @@ const CollageEditor = ({ triggerSnackbar }) => {
                     "quadValue": "<http://megras.org/schema#segmentOf>"
                 })
             }
-            let response = await fetch("http://localhost:8080/query/predicate", options)
+            let response = await fetch(BACKEND_URL + "/query/predicate", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let data = await response.json()
@@ -110,13 +119,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
         fetchMedia()
         return () => { }
     }, [])
-
-
-    const [elements, setElements] = React.useState([]);
-    const [selectedId, setSelected] = React.useState(null);
-
-    const stageref = React.useRef();
-    const backgroundRef = React.useRef();
 
     const createCanvas = () => {
         setHasCanvas(true)
@@ -132,7 +134,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
         } else {
             elems.splice(idx > 0 ? idx - 1 : 0, 0, element)
         }
-        console.log(elems)
         setElements(elems)
     }
 
@@ -144,7 +145,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
     };
 
     const addToCanvas = (el) => {
-        console.log(el)
         setElements([...elements, {
             url: el.replace("<", "").replace(">", ""),
             id: el + elements.length
@@ -170,6 +170,39 @@ const CollageEditor = ({ triggerSnackbar }) => {
         setHasCanvas(false)
     }
 
+    const search = async (images) => {
+        let pred = images ? "<http://megras.org/schema#captionVector>" : "<http://megras.org/schema#categoryVector>"
+
+        let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + query)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (seg_embed == undefined) return
+        let embedding = await seg_embed.text()
+        let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
+
+        var options = {
+            method: 'POST',
+            body: JSON.stringify({
+                "predicate": pred,
+                "object": vector,
+                "count": 1,
+                "distance": "COSINE"
+            })
+        }
+        let response = await fetch(BACKEND_URL + "/query/knn", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        let data = await response.json()
+
+        let urls = new Set()
+        data.results.forEach(r => {
+            if (r.s.startsWith("<")) {
+                urls.add(r.s)
+            }
+        })
+
+        images ? setImages(Array.from(urls)) : setSegments(Array.from(urls))
+    }
+
     const saveImage = async () => {
         let dataURL = stageref.current.toDataURL()
         let response = await fetch(dataURL)
@@ -179,12 +212,12 @@ const CollageEditor = ({ triggerSnackbar }) => {
         var body = new FormData()
         body.append("file", blob, "collage.jpg")
 
-        response = await fetch("http://localhost:8080/add/file", { method: 'POST', body: body })
+        response = await fetch(BACKEND_URL + "/add/file", { method: 'POST', body: body })
             .catch(e => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         let data = await response.json()
         let uri = data["collage.jpg"]["uri"]
-        window.open("http://localhost:8080/" + uri, '_blank').focus();
+        window.open(BACKEND_URL + "/" + uri, '_blank').focus();
     }
 
     const toSVG = () => {
@@ -201,7 +234,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
 
         let images = stageref.current.children[0].children
         images = images.slice(1)
-        console.log(images)
         for (let image of images) {
             var img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             img.setAttribute('height', image.attrs.height);
@@ -251,56 +283,44 @@ const CollageEditor = ({ triggerSnackbar }) => {
                     :
                     <Stack direction="row" alignItems="start" spacing={2}>
                         <Stack direction="row">
-                            <Grid
-                                container
-                                m={1}
-                                maxWidth={'10vw'}
-                                height={height}
-                                overflow="scroll"
-                                justifyContent='center'
-                                alignItems='flex-start'
-                                spacing={2}
-                            >
-                                {allImages.map((s, i) => (
-                                    <Grid item key={i} xs={12} >
-                                        <Paper sx={{ height: '10vh' }} onClick={() => addToCanvas(s)}>
-                                            <img
-                                                key={i}
-                                                src={s.replace("<", "").replace(">", "")}
-                                                height='100%'
-                                                width='100%'
-                                                style={{ objectFit: 'scale-down', cursor: 'copy' }}
+                            {[allImages, allSegments].map((collection) => (
+                                <Stack direction="column" spacing={2} mx={1}>
+                                    <Box width='10vw'>
+                                        <TextField
+                                            label="test"
+                                            onChange={(e) => setQuery(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    let searchImages = collection == allImages
+                                                    search(searchImages)
+                                                }
+                                             }}
+                                        />
+                                    </Box>
+                                    <Stack
+                                        direction="column"
+                                        maxWidth='10vw'
+                                        height="70vh"
+                                        overflow="scroll"
+                                        justifyContent='flex-start'
+                                        alignItems='center'
+                                        spacing={2}
+                                    >
+                                        {collection.map((s, i) => (
+                                            <Paper sx={{ height: '10vh' }} onClick={() => addToCanvas(s)}>
+                                                <img
+                                                    key={i}
+                                                    src={s.replace("<", "").replace(">", "")}
+                                                    height='100%'
+                                                    width='100%'
+                                                    style={{ objectFit: 'scale-down', cursor: 'copy' }}
 
-                                            />
-                                        </Paper>
-                                    </Grid>
-                                ))}
-                            </Grid>
-                            <Grid
-                                container
-                                m={1}
-                                maxWidth={'10vw'}
-                                height={height}
-                                overflow="scroll"
-                                justifyContent='center'
-                                alignItems='flex-start'
-                                spacing={2}
-                            >
-                                {allSegments.map((s, i) => (
-                                    <Grid item key={i} xs={12} >
-                                        <Paper sx={{ height: '10vh' }} onClick={() => addToCanvas(s)}>
-                                            <img
-                                                key={i}
-                                                src={s.replace("<", "").replace(">", "")}
-                                                height='100%'
-                                                width='100%'
-                                                style={{ objectFit: 'scale-down', cursor: 'copy' }}
-
-                                            />
-                                        </Paper>
-                                    </Grid>
-                                ))}
-                            </Grid>
+                                                />
+                                            </Paper>
+                                        ))}
+                                    </Stack>
+                                </Stack>
+                            ))}
                         </Stack>
                         <Stage ref={stageref} width={width} height={height} onMouseDown={checkDeselect}
                             onTouchStart={checkDeselect}>
@@ -326,7 +346,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                             onChange={(newAttrs) => {
                                                 const els = elements.slice();
                                                 els[i] = newAttrs;
-                                                console.log(els)
                                                 setElements(els);
                                             }}
                                         />
