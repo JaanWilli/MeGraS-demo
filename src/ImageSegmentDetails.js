@@ -5,6 +5,7 @@ import { BACKEND_ERR } from './Errors';
 import { Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { BACKEND_URL } from './Api';
+import { useNavigate } from 'react-router';
 
 const SegmentImage = ({ url, x, y, opacity }) => {
     const [image] = useImage(url);
@@ -12,7 +13,9 @@ const SegmentImage = ({ url, x, y, opacity }) => {
 };
 
 const ImageSegmentDetails = (props) => {
-    const { allowDelete, triggerSnackbar, objectId, loading, setLoading, details, limitSegments, hideEmpty = false } = props
+    const { triggerSnackbar, objectId, loading, setLoading, details, limitSegments, transparent = false, hideEmpty = false } = props
+
+    const navigate = useNavigate();
 
     const stageref = React.useRef();
     const tooltipref = React.useRef();
@@ -22,7 +25,6 @@ const ImageSegmentDetails = (props) => {
 
     const [segments, setSegments] = React.useState([])
     const [highlightSegment, setHighlight] = React.useState()
-    const [hover, setHover] = React.useState(true)
 
     const [showImage, setShowImage] = React.useState(true)
 
@@ -90,37 +92,23 @@ const ImageSegmentDetails = (props) => {
     }, [imageStatus])
 
     const toggleSegment = (idx) => {
-        if (hover) {
-            if (highlightSegment == idx) {
-                setHighlight()
-            } else {
-                setHighlight(idx)
-                let segment = segments[idx]
-                tooltiptextref.current.text(segment.category)
-                tooltipref.current.x(segment.x)
-                tooltipref.current.y(segment.y)
-                tooltipref.current.visible(segment.category != "")
-            }
+        if (highlightSegment == idx) {
+            setHighlight()
+        } else {
+            setHighlight(idx)
+            let segment = segments[idx]
+            tooltiptextref.current.text(segment.category)
+            tooltipref.current.x(segment.x)
+            tooltipref.current.y(segment.y)
+            tooltipref.current.visible(segment.category != "")
         }
     }
 
     const selectSegment = () => {
-        setHover(!hover)
-    }
-
-    const deleteSegment = async () => {
-        let toDelete = segments[highlightSegment]
-        let id = toDelete.url.replace("<" + BACKEND_URL + "/", "").replace(">", "")
-        let response = await fetch(BACKEND_URL + "/" + id, { method: 'DELETE' })
-            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
-        if (response == undefined) return
-        if (response.ok) {
-            segments.splice(highlightSegment, 1)
-            setSegments(segments)
-            setHover(true)
-            setHighlight()
-        } else {
-            console.log(response.statusText)
+        let segment = segments[highlightSegment]
+        if (segment) {
+            let uri = segment.url.replace("<" + BACKEND_URL, "").replace(">", "")
+            return navigate(uri)
         }
     }
 
@@ -130,13 +118,13 @@ const ImageSegmentDetails = (props) => {
                 <>
                     <Stage ref={stageref} width={image.width} height={image.height}>
                         <Layer>
-                            <Image image={image} opacity={highlightSegment === undefined ? 1 : 0.3} />
+                            <Image image={image} opacity={transparent || highlightSegment !== undefined ? 0.3 : 1} />
                             {segments.map((s, i) => (
                                 <>
                                     <SegmentImage
                                         url={s.url.replace("<", "").replace(">", "")}
                                         x={s.x} y={s.y}
-                                        opacity={highlightSegment === i ? 1 : 0}
+                                        opacity={transparent || highlightSegment === i ? 1 : 0}
                                     />
                                     <Rect x={s.x} y={s.y}
                                         width={s.w} height={s.h}
@@ -152,7 +140,6 @@ const ImageSegmentDetails = (props) => {
                                         }}
                                         onClick={selectSegment}
                                         stroke="red"
-                                        strokeWidth={!hover && highlightSegment === i ? 4 : 1}
                                         visible={highlightSegment === undefined || highlightSegment === i}
                                     />
                                 </>
@@ -165,18 +152,6 @@ const ImageSegmentDetails = (props) => {
                             </Label>
                         </Layer>
                     </Stage>
-                    {allowDelete &&
-                        <Button
-                            sx={{ margin: 2 }}
-                            variant='contained'
-                            color='warning'
-                            disabled={hover}
-                            startIcon={<DeleteIcon />}
-                            onClick={deleteSegment}
-                        >
-                            Delete Segment
-                        </Button>
-                    }
                 </>
                 :
                 null

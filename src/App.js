@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import React from 'react';
 import './App.css';
 import Library from './Library';
@@ -18,6 +18,8 @@ import MediaAnnotator from './MediaAnnotator';
 import CollageEditor from './CollageEditor';
 
 const App = () => {
+
+  const location = useLocation();
 
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const [snackbarMessage, setSnackbarMessage] = React.useState();
@@ -51,11 +53,11 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Library triggerSnackbar={triggerSnackbar} />} />
           <Route path="/add" element={<ImageUpload triggerSnackbar={triggerSnackbar} />} />
-          <Route path="/:objectId" element={<MediaDetails triggerSnackbar={triggerSnackbar} />} />
           <Route path="/segment/:id" element={<MediaAnnotator triggerSnackbar={triggerSnackbar} />} />
           <Route path="/coco" element={<CocoImporter triggerSnackbar={triggerSnackbar} />} />
           <Route path="/query" element={<Query triggerSnackbar={triggerSnackbar} />} />
           <Route path="/collage" element={<CollageEditor triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/*" key={Date.now()} element={<MediaDetails triggerSnackbar={triggerSnackbar} key={location.key} />} />
         </Routes>
 
         <Snackbar
