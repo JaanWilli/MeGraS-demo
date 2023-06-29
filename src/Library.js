@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router";
 import FileDisplay from "./FileDisplay";
 import { BACKEND_ERR } from "./Errors";
+import { BACKEND_URL } from "./Api";
 
 
 const Library = ({ triggerSnackbar }) => {
@@ -28,7 +29,7 @@ const Library = ({ triggerSnackbar }) => {
                     "quadValue": "<http://megras.org/schema#rawId>"
                 })
             }
-            var response = await fetch("http://localhost:8080/query/predicate", options)
+            var response = await fetch(BACKEND_URL + "/query/predicate", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let uris = await response.json()
@@ -41,7 +42,7 @@ const Library = ({ triggerSnackbar }) => {
                     "o": []
                 })
             }
-            response = await fetch("http://localhost:8080/query/quads", options)
+            response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let mimetypeResults = await response.json()
@@ -90,7 +91,7 @@ const Library = ({ triggerSnackbar }) => {
                         return (
                             !selectedType || mimeToMediaType.get(m.type) === selectedType ?
                                 <Grid item xs={2}>
-                                    <Paper elevation={3} onClick={() => navigate(m.url.replace("http://localhost:8080", ""))} sx={{ height: '16vh', cursor: 'pointer' }}>
+                                    <Paper elevation={3} onClick={() => navigate(m.url.replace(BACKEND_URL, ""))} sx={{ height: '16vh', cursor: 'pointer' }}>
                                         <FileDisplay
                                             isPreview={true}
                                             filedata={m.url}

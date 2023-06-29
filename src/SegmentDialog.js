@@ -6,6 +6,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 import { BACKEND_ERR, PREDICTOR_ERR } from "./Errors";
 import FileDisplay from "./FileDisplay";
+import { BACKEND_URL, PREDICTOR_URL } from "./Api";
 
 function SegmentDialog(props) {
     const { triggerSnackbar, open, url, onClose, filetype } = props
@@ -36,7 +37,7 @@ function SegmentDialog(props) {
 
     const generateCategory = async () => {
         setCategoryLoading(true)
-        let response = await fetch("http://localhost:5000/caption/" + redirectUrl.replace("http://localhost:8080/", ""))
+        let response = await fetch(PREDICTOR_URL + "/caption/" + redirectUrl.replace(BACKEND_URL + "/", ""))
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (response == undefined) return
         let category = await response.text()
@@ -53,7 +54,7 @@ function SegmentDialog(props) {
             "o": category + "^^String"
         })
 
-        let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+        let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + category)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (embed_response == undefined) return
         let embedding = await embed_response.text()
@@ -69,7 +70,7 @@ function SegmentDialog(props) {
                 "quads": quads
             })
         }
-        let res = await fetch("http://localhost:8080/add/quads", options)
+        let res = await fetch(BACKEND_URL + "/add/quads", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         console.log(res)
         setCategorySent(true)

@@ -11,10 +11,11 @@ import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import captureVideoFrame from "capture-video-frame";
 import ReactPlayer from "react-player";
 import SegmentDialog from './SegmentDialog';
+import { BACKEND_URL } from './Api';
 
 
 function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
-    const videoUrl = "http://localhost:8080/" + id
+    const videoUrl = BACKEND_URL + "/" + id
 
     const elementRef = React.useRef(null);
     const playerRef = React.useRef(null);

@@ -8,6 +8,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import MediaSegmentDetails from './MediaSegmentDetails';
 import ImageSegmentDetails from './ImageSegmentDetails';
 import { BACKEND_ERR } from './Errors';
+import { BACKEND_URL } from './Api';
 
 const MediaDetails = ({ triggerSnackbar }) => {
     const { objectId } = useParams();
@@ -23,12 +24,12 @@ const MediaDetails = ({ triggerSnackbar }) => {
             const options = {
                 method: 'POST',
                 body: JSON.stringify({
-                    "s": ["<http://localhost:8080/" + objectId + ">"],
+                    "s": ["<" + BACKEND_URL + "/" + objectId + ">"],
                     "p": [],
                     "o": []
                 })
             }
-            let response = await fetch("http://localhost:8080/query/quads", options)
+            let response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let data = await response.json()
@@ -53,7 +54,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
     }, [])
 
     const deleteMedium = async () => {
-        let response = await fetch("http://localhost:8080/" + objectId, { method: 'DELETE' })
+        let response = await fetch(BACKEND_URL + "/" + objectId, { method: 'DELETE' })
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         if (response.ok) {

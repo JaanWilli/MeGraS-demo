@@ -3,6 +3,7 @@ import React from 'react';
 import FileDisplay from './FileDisplay';
 import { BACKEND_ERR } from './Errors';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { BACKEND_URL } from './Api';
 
 
 const MediaSegmentDetails = (props) => {
@@ -17,10 +18,10 @@ const MediaSegmentDetails = (props) => {
                 body: JSON.stringify({
                     "s": [],
                     "p": ["<http://megras.org/schema#segmentOf>"],
-                    "o": ["<http://localhost:8080/" + objectId + ">"]
+                    "o": ["<" + BACKEND_URL + "/" + objectId + ">"]
                 })
             }
-            let response = await fetch("http://localhost:8080/query/quads", options)
+            let response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let data = await response.json()
@@ -35,7 +36,7 @@ const MediaSegmentDetails = (props) => {
                     "o": []
                 })
             }
-            response = await fetch("http://localhost:8080/query/quads", options)
+            response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let category_data = await response.json()
@@ -55,8 +56,8 @@ const MediaSegmentDetails = (props) => {
     const deleteSegment = async (i) => {
         let toDelete = segments[i]
         console.log(toDelete)
-        let id = toDelete.url.replace("<http://localhost:8080/", "").replace(">", "")
-        let response = await fetch("http://localhost:8080/" + id, { method: 'DELETE' })
+        let id = toDelete.url.replace("<" + BACKEND_URL + "/", "").replace(">", "")
+        let response = await fetch(BACKEND_URL + "/" + id, { method: 'DELETE' })
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         if (response.ok) {
@@ -72,7 +73,7 @@ const MediaSegmentDetails = (props) => {
     return (
         <>
             <FileDisplay
-                filedata={"http://localhost:8080/" + objectId}
+                filedata={BACKEND_URL + "/" + objectId}
                 filetype={filetype}
                 filename={filename}
             />

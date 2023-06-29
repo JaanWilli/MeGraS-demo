@@ -16,10 +16,11 @@ import SearchIcon from '@mui/icons-material/Search';
 import ImageDialog from './SegmentDialog';
 import { PREDICTOR_ERR } from './Errors';
 import SegmentDialog from './SegmentDialog';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 
 
 function ImageAnnotator({ triggerSnackbar, id }) {
-    const imageUrl = "http://localhost:8080/" + id
+    const imageUrl = BACKEND_URL + "/" + id
 
     const elementRef = React.useRef(null);
     const canvas = React.createRef(null);
@@ -111,7 +112,7 @@ function ImageAnnotator({ triggerSnackbar, id }) {
                 "prompt": prompt
             })
         }
-        let response = await fetch("http://localhost:5000/predict", options)
+        let response = await fetch(PREDICTOR_URL + "/predict", options)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (response == undefined) return
         let base64mask = await response.text()

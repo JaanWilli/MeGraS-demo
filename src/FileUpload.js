@@ -7,6 +7,7 @@ import FileSelect from './FileSelect';
 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 
 
 const ImageUpload = ({ triggerSnackbar }) => {
@@ -40,7 +41,7 @@ const ImageUpload = ({ triggerSnackbar }) => {
 
     const generateCaption = async () => {
         setCaptionLoading(true)
-        let response = await fetch("http://localhost:5000/caption/" + fileID)
+        let response = await fetch(PREDICTOR_URL + "/caption/" + fileID)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (response == undefined) return
         let caption = await response.text()
@@ -49,7 +50,7 @@ const ImageUpload = ({ triggerSnackbar }) => {
     }
 
     const sendCaption = async () => {
-        let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+        let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + caption)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (embed_response == undefined) return
         let embedding = await embed_response.text()
@@ -58,19 +59,19 @@ const ImageUpload = ({ triggerSnackbar }) => {
             method: 'POST',
             body: JSON.stringify({
                 "quads": [{
-                    "s": "<http://localhost:8080/" + fileID + ">",
+                    "s": "<" + BACKEND_URL + "/" + fileID + ">",
                     "p": "<https://schema.org/caption>",
                     "o": caption + "^^String"
                 },
                 {
-                    "s": "<http://localhost:8080/" + fileID + ">",
+                    "s": "<" + BACKEND_URL + "/" + fileID + ">",
                     "p": "<http://megras.org/schema#captionVector>",
                     "o": embedding.trim()
                 }
             ]
             })
         }
-        let response = await fetch("http://localhost:8080/add/quads", options)
+        let response = await fetch(BACKEND_URL + "/add/quads", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         console.log(response)
@@ -86,7 +87,7 @@ const ImageUpload = ({ triggerSnackbar }) => {
         data.append("file", file)
         const filename = file["name"]
 
-        fetch("http://localhost:8080/add/file", { method: 'POST', body: data })
+        fetch(BACKEND_URL + "/add/file", { method: 'POST', body: data })
             .then(response => response.json())
             .then(data => {
                 setLoading(false)
@@ -123,10 +124,10 @@ const ImageUpload = ({ triggerSnackbar }) => {
                 {loading && <CircularProgress />}
                 {fileID &&
                     <Stack alignItems="center" spacing={2} direction="column">
-                        <Box>Successfully added <a href={"http://localhost:8080/" + fileID} target="_blank">{file.name}</a></Box>
+                        <Box>Successfully added <a href={BACKEND_URL + "/" + fileID} target="_blank">{file.name}</a></Box>
                         {filetype.startsWith("image") &&
                             <>
-                                <img src={"http://localhost:8080/" + fileID} />
+                                <img src={BACKEND_URL + "/" + fileID} />
                                 {!captionSent &&
                                     <Stack spacing={2} mt={2} direction="row" alignItems="center">
                                         <Box>Caption:</Box>

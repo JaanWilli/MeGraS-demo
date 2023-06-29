@@ -4,6 +4,7 @@ import ImageAnnotator from './ImageAnnotator';
 import VideoAnnotator from './VideoAnnotator';
 import { BACKEND_ERR } from './Errors';
 import AudioAnnotator from './AudioAnnotator';
+import { BACKEND_URL } from './Api';
 
 
 function MediaAnnotator({ triggerSnackbar }) {
@@ -14,7 +15,7 @@ function MediaAnnotator({ triggerSnackbar }) {
     React.useEffect(() => {
         async function fetchMedia() {
 
-            var response = await fetch("http://localhost:8080/" + id)
+            var response = await fetch(BACKEND_URL + "/" + id)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
 

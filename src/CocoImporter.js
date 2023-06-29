@@ -9,6 +9,7 @@ import captions from './captions_val2017.json'
 import { useNavigate } from 'react-router';
 import FileSelect from './FileSelect';
 import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 
 
 const CocoImporter = ({ triggerSnackbar }) => {
@@ -68,12 +69,12 @@ const CocoImporter = ({ triggerSnackbar }) => {
             console.log(filename)
             let imageid = filename.replaceAll("0", "").replace(".jpg", "")
 
-            var response = await fetch("http://localhost:8080/add/file", { method: 'POST', body: body })
+            var response = await fetch(BACKEND_URL + "/add/file", { method: 'POST', body: body })
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             if (response.ok) {
                 let data = await response.json()
-                let imageUrl = "http://localhost:8080/" + data[filename]["uri"]
+                let imageUrl = BACKEND_URL + "/" + data[filename]["uri"]
 
                 let captions = imageCaptions.get(Number(imageid))
                 if (captions == undefined) {
@@ -86,7 +87,7 @@ const CocoImporter = ({ triggerSnackbar }) => {
                         "o": caption + "^^String"
                     })
 
-                    let embed_response = await fetch("http://localhost:5000/embedding/" + caption)
+                    let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + caption)
                         .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
                     if (embed_response == undefined) return
                     let embedding = await embed_response.text()
@@ -117,7 +118,7 @@ const CocoImporter = ({ triggerSnackbar }) => {
                                     "o": category + "^^String"
                                 })
 
-                                let embed_response = await fetch("http://localhost:5000/embedding/" + category)
+                                let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + category)
                                     .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
                                 if (embed_response == undefined) return
                                 let embedding = await embed_response.text()
@@ -139,7 +140,7 @@ const CocoImporter = ({ triggerSnackbar }) => {
                 "quads": quads
             })
         }
-        await fetch("http://localhost:8080/add/quads", options)
+        await fetch(BACKEND_URL + "/add/quads", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
 
         console.log("complete")

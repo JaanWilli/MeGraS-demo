@@ -9,10 +9,11 @@ import PauseIcon from '@mui/icons-material/Pause';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
 import SegmentDialog from './SegmentDialog';
+import { BACKEND_URL } from './Api';
 
 
 const AudioAnnotator = ({ triggerSnackbar, id }) => {
-    const audioUrl = "http://localhost:8080/" + id
+    const audioUrl = BACKEND_URL + "/" + id
 
     const playerRef = React.useRef(null);
     const [loaded, setLoaded] = React.useState(false);

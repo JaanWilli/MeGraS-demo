@@ -4,6 +4,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ImageSegmentDetails from './ImageSegmentDetails';
 import { useNavigate } from 'react-router';
 import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 
 
 const Query = ({ triggerSnackbar }) => {
@@ -45,7 +46,7 @@ const Query = ({ triggerSnackbar }) => {
                 "o": []
             })
         }
-        let response = await fetch("http://localhost:8080/query/quads", options)
+        let response = await fetch(BACKEND_URL + "/query/quads", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         let data = await response.json()
@@ -53,7 +54,7 @@ const Query = ({ triggerSnackbar }) => {
     }
 
     const searchSegments = async () => {
-        let seg_embed = await fetch("http://localhost:5000/embedding/" + segmentQuery)
+        let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + segmentQuery)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (seg_embed == undefined) return
         let embedding = await seg_embed.text()
@@ -68,7 +69,7 @@ const Query = ({ triggerSnackbar }) => {
                 "distance": "COSINE"
             })
         }
-        let response = await fetch("http://localhost:8080/query/knn", options)
+        let response = await fetch(BACKEND_URL + "/query/knn", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         let data = await response.json()
@@ -84,7 +85,7 @@ const Query = ({ triggerSnackbar }) => {
     }
 
     const searchImages = async () => {
-        let seg_embed = await fetch("http://localhost:5000/embedding/" + imageQuery)
+        let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + imageQuery)
             .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
         if (seg_embed == undefined) return
         let image_embedding = await seg_embed.text()
@@ -99,7 +100,7 @@ const Query = ({ triggerSnackbar }) => {
                 "distance": "COSINE"
             })
         }
-        let response = await fetch("http://localhost:8080/query/knn", options)
+        let response = await fetch(BACKEND_URL + "/query/knn", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         console.log(response)
@@ -140,11 +141,11 @@ const Query = ({ triggerSnackbar }) => {
                 {loading ? <CircularProgress /> :
                     <Stack spacing={2} direction="column" alignItems="center">
                         {images.map(s => (
-                            <Box sx={{ cursor: 'pointer' }} onClick={() => navigate(s.replace("<http://localhost:8080", "").replace(">", ""))}>
+                            <Box sx={{ cursor: 'pointer' }} onClick={() => navigate(s.replace("<" + BACKEND_URL, "").replace(">", ""))}>
                                 <ImageSegmentDetails
                                     allowDelete={false}
                                     triggerSnackbar={triggerSnackbar}
-                                    objectId={s.replace("<http://localhost:8080/", "").replace(">", "")}
+                                    objectId={s.replace("<" + BACKEND_URL + "/", "").replace(">", "")}
                                     setLoading={() => { }}
                                     limitSegments={segments}
                                     hideEmpty={segments.length > 0}

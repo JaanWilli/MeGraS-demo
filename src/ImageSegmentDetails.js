@@ -4,6 +4,7 @@ import useImage from 'use-image';
 import { BACKEND_ERR } from './Errors';
 import { Button } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { BACKEND_URL } from './Api';
 
 const SegmentImage = ({ url, x, y, opacity }) => {
     const [image] = useImage(url);
@@ -17,7 +18,7 @@ const ImageSegmentDetails = (props) => {
     const tooltipref = React.useRef();
     const tooltiptextref = React.useRef();
 
-    const [image, imageStatus] = useImage("http://localhost:8080/" + objectId);
+    const [image, imageStatus] = useImage(BACKEND_URL + "/" + objectId);
 
     const [segments, setSegments] = React.useState([])
     const [highlightSegment, setHighlight] = React.useState()
@@ -32,10 +33,10 @@ const ImageSegmentDetails = (props) => {
                 body: JSON.stringify({
                     "s": [],
                     "p": ["<http://megras.org/schema#segmentOf>"],
-                    "o": ["<http://localhost:8080/" + objectId + ">"]
+                    "o": ["<" + BACKEND_URL + "/" + objectId + ">"]
                 })
             }
-            let response = await fetch("http://localhost:8080/query/quads", options)
+            let response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             let data = await response.json()
@@ -55,7 +56,7 @@ const ImageSegmentDetails = (props) => {
                     "o": []
                 })
             }
-            response = await fetch("http://localhost:8080/query/quads", options)
+            response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
             data = await response.json()
@@ -109,8 +110,8 @@ const ImageSegmentDetails = (props) => {
 
     const deleteSegment = async () => {
         let toDelete = segments[highlightSegment]
-        let id = toDelete.url.replace("<http://localhost:8080/", "").replace(">", "")
-        let response = await fetch("http://localhost:8080/" + id, { method: 'DELETE' })
+        let id = toDelete.url.replace("<" + BACKEND_URL + "/", "").replace(">", "")
+        let response = await fetch(BACKEND_URL + "/" + id, { method: 'DELETE' })
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         if (response.ok) {
