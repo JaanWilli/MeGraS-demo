@@ -87,8 +87,10 @@ const CollageEditor = ({ triggerSnackbar }) => {
     const [height, setHeight] = React.useState()
     const [hasCanvas, setHasCanvas] = React.useState(false)
 
-    const [allImages, setImages] = React.useState([])
-    const [allSegments, setSegments] = React.useState([])
+    const [allImages, setAllImages] = React.useState([])
+    const [allSegments, setAllSegments] = React.useState([])
+    const [images, setImages] = React.useState([])
+    const [segments, setSegments] = React.useState([])
 
     const [elements, setElements] = React.useState([]);
     const [selectedId, setSelected] = React.useState(null);
@@ -112,8 +114,11 @@ const CollageEditor = ({ triggerSnackbar }) => {
             let data = await response.json()
             let segments = data.results.map(d => d.s)
             let images = data.results.map(d => d.o)
+            images = [...new Set(images)]
+            setAllImages(images)
+            setAllSegments(segments)
+            setImages(images)
             setSegments(segments)
-            setImages([...new Set(images)])
         }
 
         fetchMedia()
@@ -171,34 +176,65 @@ const CollageEditor = ({ triggerSnackbar }) => {
     }
 
     const search = async (images) => {
-        let pred = images ? "<http://megras.org/schema#captionVector>" : "<http://megras.org/schema#categoryVector>"
-
-        let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + query)
-            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
-        if (seg_embed == undefined) return
-        let embedding = await seg_embed.text()
-        let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
-
-        var options = {
-            method: 'POST',
-            body: JSON.stringify({
-                "predicate": pred,
-                "object": vector,
-                "count": 1,
-                "distance": "COSINE"
-            })
+        if (!query) {
+            images ? setImages(allImages) : setSegments(allSegments)
+            return
         }
-        let response = await fetch(BACKEND_URL + "/query/knn", options)
-            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
-        if (response == undefined) return
-        let data = await response.json()
 
         let urls = new Set()
-        data.results.forEach(r => {
-            if (r.s.startsWith("<")) {
-                urls.add(r.s)
+
+        if (!images) {
+            let sparql = `SELECT DISTINCT ?cLabel WHERE{  ?item ?label "${query}"@en. ?c wdt:P279 / wdt:P279? ?item . SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } }`
+            let res = await fetch("https://query.wikidata.org/sparql?format=json&query=" + sparql)
+            let wd_json = await res.json()
+
+            let children = wd_json.results.bindings.map(b => b.cLabel.value)
+            let options = {
+                method: 'POST',
+                body: JSON.stringify({
+                    "s": [],
+                    "p": ["<https://schema.org/category>"],
+                    "o": children
+                })
             }
-        })
+            let response = await fetch(BACKEND_URL + "/query/quads", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            let data = await response.json()
+            data.results.forEach(r => {
+                if (r.s.startsWith("<")) {
+                    urls.add(r.s)
+                }
+            })
+        }
+
+        if (urls.size == 0) {
+            let pred = images ? "<http://megras.org/schema#captionVector>" : "<http://megras.org/schema#categoryVector>"
+            let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + query)
+                .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+            if (seg_embed == undefined) return
+            let embedding = await seg_embed.text()
+            let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
+
+            var options = {
+                method: 'POST',
+                body: JSON.stringify({
+                    "predicate": pred,
+                    "object": vector,
+                    "count": 1,
+                    "distance": "COSINE"
+                })
+            }
+            let response = await fetch(BACKEND_URL + "/query/knn", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
+            let data = await response.json()
+
+            data.results.forEach(r => {
+                if (r.s.startsWith("<")) {
+                    urls.add(r.s)
+                }
+            })
+        }
 
         images ? setImages(Array.from(urls)) : setSegments(Array.from(urls))
     }
@@ -283,18 +319,18 @@ const CollageEditor = ({ triggerSnackbar }) => {
                     :
                     <Stack direction="row" alignItems="start" spacing={2}>
                         <Stack direction="row">
-                            {[allImages, allSegments].map((collection) => (
+                            {[images, segments].map((collection) => (
                                 <Stack direction="column" spacing={2} mx={1}>
                                     <Box width='10vw'>
                                         <TextField
-                                            label="test"
+                                            label="Filter"
                                             onChange={(e) => setQuery(e.target.value)}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter") {
-                                                    let searchImages = collection == allImages
+                                                    let searchImages = collection == images
                                                     search(searchImages)
                                                 }
-                                             }}
+                                            }}
                                         />
                                     </Box>
                                     <Stack

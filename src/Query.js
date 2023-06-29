@@ -16,19 +16,24 @@ const Query = ({ triggerSnackbar }) => {
 
     const [segments, setSegments] = React.useState([])
     const [images, setImages] = React.useState([])
+    const [searchFor, setSearchFor] = React.useState()
 
     const search = async () => {
         setLoading(true)
         let updateImages = []
         let updateSegments = []
         if (imageQuery) {
+            setSearchFor("image")
             updateImages = await searchImages()
         }
         if (segmentQuery) {
+            setSearchFor("segment")
             updateSegments = await searchSegments()
             if (updateImages.length == 0) {
                 let images = await findImagesForSegments(updateSegments)
                 updateImages = [...new Set(images)]
+            } else {
+                setSearchFor("both")
             }
         }
         console.log(updateImages.length, updateSegments.length)
@@ -54,26 +59,45 @@ const Query = ({ triggerSnackbar }) => {
     }
 
     const searchSegments = async () => {
-        let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + segmentQuery)
-            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
-        if (seg_embed == undefined) return
-        let embedding = await seg_embed.text()
-        let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
+        let query = `SELECT DISTINCT ?cLabel WHERE{  ?item ?label "${segmentQuery}"@en. ?c wdt:P279 / wdt:P279? ?item . SERVICE wikibase:label { bd:serviceParam wikibase:language "en". } }`
+        let res = await fetch("https://query.wikidata.org/sparql?format=json&query=" + query)
+        let wd_json = await res.json()
 
-        var options = {
+        let children = wd_json.results.bindings.map(b => b.cLabel.value)
+        let options = {
             method: 'POST',
             body: JSON.stringify({
-                "predicate": "<http://megras.org/schema#categoryVector>",
-                "object": vector,
-                "count": 1,
-                "distance": "COSINE"
+                "s": [],
+                "p": ["<https://schema.org/category>"],
+                "o": children
             })
         }
-        let response = await fetch(BACKEND_URL + "/query/knn", options)
+        let response = await fetch(BACKEND_URL + "/query/quads", options)
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
-        if (response == undefined) return
         let data = await response.json()
-        console.log(data)
+
+        if (data.results.length == 0) {
+            console.log("no direct results found, starting semantic search")
+            let seg_embed = await fetch(PREDICTOR_URL + "/embedding/" + segmentQuery)
+                .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+            if (seg_embed == undefined) return
+            let embedding = await seg_embed.text()
+            let vector = embedding.slice(1, embedding.length - 2).split(",").map(v => Number(v))
+
+            options = {
+                method: 'POST',
+                body: JSON.stringify({
+                    "predicate": "<http://megras.org/schema#categoryVector>",
+                    "object": vector,
+                    "count": 3,
+                    "distance": "COSINE"
+                })
+            }
+            response = await fetch(BACKEND_URL + "/query/knn", options)
+                .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+            if (response == undefined) return
+            data = await response.json()
+        }
 
         let urls = new Set()
         data.results.forEach(r => {
@@ -143,12 +167,12 @@ const Query = ({ triggerSnackbar }) => {
                         {images.map(s => (
                             <Box sx={{ cursor: 'pointer' }} onClick={() => navigate(s.replace("<" + BACKEND_URL, "").replace(">", ""))}>
                                 <ImageSegmentDetails
-                                    allowDelete={false}
                                     triggerSnackbar={triggerSnackbar}
                                     objectId={s.replace("<" + BACKEND_URL + "/", "").replace(">", "")}
                                     setLoading={() => { }}
                                     limitSegments={segments}
                                     hideEmpty={segments.length > 0}
+                                    transparent={searchFor == "segment"}
                                 />
                             </Box>
                         ))
