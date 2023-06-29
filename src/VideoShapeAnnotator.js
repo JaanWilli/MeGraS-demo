@@ -14,7 +14,7 @@ import SegmentDialog from './SegmentDialog';
 import { BACKEND_URL } from './Api';
 
 
-function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
+function VideoShapeAnnotator({ triggerSnackbar, id }) {
     const videoUrl = BACKEND_URL + "/" + id
 
     const elementRef = React.useRef(null);
@@ -33,7 +33,6 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
     const [ready, setReady] = React.useState(false);
     const [image, setImage] = React.useState()
     const [slider, setSlider] = React.useState(0)
-    const [rotoscope, setRotoscope] = React.useState([]);
 
     React.useEffect(() => {
         if (elementRef.current) {
@@ -95,34 +94,26 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
             }
         }
     }
-
-    const confirm = () => {
-        let timestamp = slider / 100 * playerRef.current.getDuration()
-        var newRotoscope;
+    const complete = () => {
+        var url;
         if (shape.dim !== undefined) {
             const x = shape.dim.x
             const w = shape.dim.width
             const h = shape.dim.height
             const y = height - shape.dim.y - h
-            newRotoscope = timestamp + ",rect," + x + "," + (x + w) + "," + y + "," + (y + h)
+            url = videoUrl + "/segment/rect/" + x + "," + (x + w) + "," + y + "," + (y + h)
         } else if (shape.points !== undefined) {
             var points = []
             for (var i = 0; i < shape.points.length; i++) {
                 points.push("(" + shape.points[i].x + "," + (height - shape.points[i].y) + ")")
             }
-            newRotoscope = timestamp + ",polygon," + points.join(",")
+            url = videoUrl + "/segment/polygon/" + points.join(",")
         }
-        console.log(newRotoscope)
-        setRotoscope([...rotoscope, { ts: timestamp, uri: newRotoscope }])
-        clear()
-    }
-
-    const complete = () => {
-        rotoscope.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts))
-        const url = videoUrl + "/segment/rotoscope/" + rotoscope.map(r => r.uri).join(";")
         console.log(url)
+
         setOpen(true)
         setUrl(url)
+        clear()
     }
 
     return (
@@ -151,9 +142,8 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
                             <Button variant={mode === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
                             <Button variant={mode === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" onClick={() => confirm()}><CheckBoxIcon /></Button>
                         </Stack>
-                        <Button variant="contained" color='secondary' disabled={rotoscope.length == 0} onClick={() => complete()}><CheckBoxIcon /></Button>
+                        <Button variant="contained" color='secondary' disabled={!shape} onClick={() => complete()}><CheckBoxIcon /></Button>
                     </Stack>
                     <Stack spacing={2} direction="column">
                         <svg id='svg'
@@ -182,4 +172,4 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
     );
 }
 
-export default VideoRotoscopeAnnotator;
+export default VideoShapeAnnotator;

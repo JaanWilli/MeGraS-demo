@@ -24,13 +24,13 @@ function SegmentDialog(props) {
             let response = await fetch(url)
             if (response.ok) {
                 setRedirectUrl(response.url)
+                setLoading(false)
             }
         }
 
         if (open) {
             setLoading(true)
             sendMedia();
-            setLoading(false);
         }
         return () => { }
     })

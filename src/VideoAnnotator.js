@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 
 import VideoTimeAnnotator from './VideoTimeAnnotator';
 import VideoRotoscopeAnnotator from './VideoRotoscopeAnnotator';
+import VideoShapeAnnotator from './VideoShapeAnnotator';
 
 
 function VideoAnnotator({ triggerSnackbar, id }) {
@@ -20,10 +21,12 @@ function VideoAnnotator({ triggerSnackbar, id }) {
                 {!type &&
                     <Stack spacing={2} direction="row">
                         <Button variant='contained' onClick={() => setType("time")}>Time</Button>
+                        <Button variant='contained' onClick={() => setType("shape")}>Shape</Button>
                         <Button variant='contained' onClick={() => setType("rotoscope")}>Rotoscope</Button>
                     </Stack>
                 }
                 {type === "time" && <VideoTimeAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
+                {type === "shape" && <VideoShapeAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
                 {type === "rotoscope" && <VideoRotoscopeAnnotator triggerSnackbar={triggerSnackbar} id={id} />}
             </div>
         </>
