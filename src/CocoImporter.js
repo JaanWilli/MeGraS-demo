@@ -67,7 +67,7 @@ const CocoImporter = ({ triggerSnackbar }) => {
             body.append("file", image["file"])
             let filename = image["file"]["name"]
             console.log(filename)
-            let imageid = filename.replaceAll("0", "").replace(".jpg", "")
+            let imageid = filename.replace(".jpg", "")
 
             var response = await fetch(BACKEND_URL + "/add/file", { method: 'POST', body: body })
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
@@ -98,7 +98,7 @@ const CocoImporter = ({ triggerSnackbar }) => {
                     })
                 }
 
-                for await (let a of instances["annotations"]) {
+                for await (let a of instances.annotations) {
                     if (a.image_id == imageid) {
                         if (a.segmentation.length === 1) {
                             const height = heights.get(a.image_id)
