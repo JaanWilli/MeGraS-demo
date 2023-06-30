@@ -21,6 +21,7 @@ function SegmentDialog(props) {
 
     React.useEffect(() => {
         async function sendMedia() {
+            setLoading(true)
             let response = await fetch(url)
             if (response.ok) {
                 setRedirectUrl(response.url)
@@ -29,11 +30,10 @@ function SegmentDialog(props) {
         }
 
         if (open) {
-            setLoading(true)
             sendMedia();
         }
         return () => { }
-    })
+    }, [open])
 
     const generateCategory = async () => {
         setCategoryLoading(true)
@@ -98,10 +98,9 @@ function SegmentDialog(props) {
                 {loading ?
                     <CircularProgress />
                     :
-                    <>
+                    <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">
                         <a href={redirectUrl} target="_blank">
                             <FileDisplay
-                                isPreview={true}
                                 filedata={redirectUrl}
                                 filetype={filetype}
                             />
@@ -120,7 +119,7 @@ function SegmentDialog(props) {
                         {!categorySent && filetype === "image/png" &&
                             <Stack spacing={2} mt={2} direction="row" alignItems="center">
                                 <Box>Category:</Box>
-                                <TextField sx={{ width: '20vw' }} multiline value={category} onChange={(e) => setCategory(e.target.value)} />
+                                <TextField sx={{ width: '10vw' }} multiline value={category} onChange={(e) => setCategory(e.target.value)} />
                                 {categoryLoading ?
                                     <CircularProgress />
                                     :
@@ -129,7 +128,7 @@ function SegmentDialog(props) {
                                 <Button variant='contained' color='secondary' disabled={!category} onClick={sendCategory}>Send</Button>
                             </Stack>
                         }
-                    </>
+                    </Stack>
                 }
             </DialogContent>
         </Dialog>

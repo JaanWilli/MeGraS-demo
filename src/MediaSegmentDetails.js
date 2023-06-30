@@ -60,6 +60,7 @@ const MediaSegmentDetails = (props) => {
                 filetype={filetype}
                 filename={filename}
             />
+            <br />
             {!loading && details}
         </>
     )

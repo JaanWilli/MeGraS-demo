@@ -2,8 +2,6 @@ import React from 'react';
 import { Stage, Layer, Rect, Text, Image, Label, Tag } from 'react-konva';
 import useImage from 'use-image';
 import { BACKEND_ERR } from './Errors';
-import { Button } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { BACKEND_URL } from './Api';
 import { useNavigate } from 'react-router';
 

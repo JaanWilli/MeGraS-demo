@@ -26,17 +26,11 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
         if (filetype.startsWith("image")) {
             return <img
                 src={filedata}
-                height='60%'
-                width='60%'
-                style={{ objectFit: 'scale-down' }}
             />
         } else if (filetype.startsWith("video")) {
             return <ReactPlayer
                 url={filedata}
                 controls
-                height='60%'
-                width='60%'
-                style={{ objectFit: 'scale-down' }}
             />
         } else if (filetype === "application/pdf") {
             return <>
