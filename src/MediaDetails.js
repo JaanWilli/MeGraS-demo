@@ -12,6 +12,7 @@ import ImageSegmentDetails from './ImageSegmentDetails';
 import { BACKEND_ERR } from './Errors';
 import { BACKEND_URL } from './Api';
 import FileDisplay from './FileDisplay';
+import SegmentDialog from './SegmentDialog';
 
 const MediaDetails = ({ triggerSnackbar }) => {
     const objectId = useParams()["*"];
@@ -27,9 +28,15 @@ const MediaDetails = ({ triggerSnackbar }) => {
     const [segmentOf, setSegmentOf] = React.useState()
     const [captions, setCaptions] = React.useState([])
     const [category, setCategory] = React.useState()
+    const [intersectable, setIntersectable] = React.useState([])
     const [similar, setSimilar] = React.useState([])
 
     const [segments, setSegments] = React.useState([])
+
+    const [selectIntersect, setSelectIntersect] = React.useState();
+
+    const [open, setOpen] = React.useState(false);
+    const [url, setUrl] = React.useState();
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -48,6 +55,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
 
             let c = []
             let embed = null
+            let bounds = []
             data.results.forEach((res) => {
                 if (res.p === "<http://megras.org/schema#canonicalMimeType>") {
                     setFiletype(res.o.replace("^^String", ""))
@@ -70,6 +78,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 } else if (res.p === "<http://megras.org/schema#categoryVector>" ||
                     res.p === "<http://megras.org/schema#captionVector>") {
                     embed = res.o.replace("[", "").replace("]^^DoubleVector", "").split(",")
+                } else if (res.p === "<http://megras.org/schema#segmentBounds>") {
+                    bounds = res.o.replace("^^String", "").split(",").map(b => Number(b))
                 }
             })
             setCaptions(c)
@@ -95,6 +105,47 @@ const MediaDetails = ({ triggerSnackbar }) => {
                         setFilename(res.o.replace("^^String", ""))
                     }
                 })
+
+                options = {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        "s": [],
+                        "p": ["<http://megras.org/schema#segmentOf>"],
+                        "o": ["<" + BACKEND_URL + "/" + objectId.slice(0, objectId.indexOf("/")) + ">"]
+                    })
+                }
+                response = await fetch(BACKEND_URL + "/query/quads", options)
+                    .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+                if (response == undefined) return
+                data = await response.json()
+                let intersect = []
+                for (const res of data.results) {
+                    if (res.s !== "<" + BACKEND_URL + "/" + objectId + ">") {
+                        options = {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                "s": [res.s],
+                                "p": ["<http://megras.org/schema#segmentBounds>"],
+                                "o": []
+                            })
+                        }
+                        response = await fetch(BACKEND_URL + "/query/quads", options)
+                            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+                        if (response == undefined) return
+                        data = await response.json()
+                        let otherbound = data.results[0].o.replace("^^String", "").split(",").map(b => Number(b))
+                        let valid = true
+                        for (let i = 0; i < otherbound.length; i++) {
+                            if (!isNaN(bounds[i]) && !isNaN(otherbound[i])) {
+                                valid = false
+                            }
+                        }
+                        if (valid) {
+                            intersect.push(res.s)
+                        }
+                    }
+                }
+                setIntersectable(intersect)
             }
 
             if (embed) {
@@ -104,7 +155,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     body: JSON.stringify({
                         "predicate": pred,
                         "object": embed,
-                        "count": 3,
+                        "count": 2,
                         "distance": "COSINE"
                     })
                 }
@@ -149,10 +200,10 @@ const MediaDetails = ({ triggerSnackbar }) => {
             response = await fetch(BACKEND_URL + "/query/quads", options)
                 .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
             if (response == undefined) return
-            let category_data = await response.json()
+            let segment_data = await response.json()
 
-            if (category_data.results.length > 0) {
-                setSegments(category_data.results.map(d => ({ url: d.s, category: d.o.replace("^^String", "") })))
+            if (segment_data.results.length > 0) {
+                setSegments(segment_data.results.map(d => ({ url: d.s, category: d.o.replace("^^String", "") })))
             } else {
                 setSegments(data.results.map(r => ({ url: r.s, category: "" })))
             }
@@ -186,105 +237,167 @@ const MediaDetails = ({ triggerSnackbar }) => {
         return navigate(uri)
     }
 
+    const selectToIntersect = (segment) => {
+        if (selectIntersect === segment) {
+            setSelectIntersect()
+        } else {
+            setSelectIntersect(segment)
+        }
+    }
+
+    const intersectWith = async () => {
+        let options = {
+            method: 'POST',
+            body: JSON.stringify({
+                "s": [selectIntersect],
+                "p": ["<http://megras.org/schema#segmentType>", "<http://megras.org/schema#segmentDefinition>"],
+                "o": []
+            })
+        }
+        let response = await fetch(BACKEND_URL + "/query/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        let data = await response.json()
+        let type = ""
+        let definition = ""
+        data.results.forEach((res) => {
+            if (res.p === "<http://megras.org/schema#segmentType>") {
+                type = res.o.replace("^^String", "")
+            } else if (res.p === "<http://megras.org/schema#segmentDefinition>") {
+                definition = res.o.replace("^^String", "")
+            }
+        })
+
+        let url = BACKEND_URL + "/" + objectId + "/segment/" + type + "/" + definition
+        setOpen(true)
+        setUrl(url)
+        console.log(url)
+    }
+
     const details = (
-        <Stack spacing={3} alignItems="center" direction="column" mb={6}>
-            <Stack direction="row" spacing={2}>
-                <Button
-                    variant='contained'
-                    color='warning'
-                    startIcon={<DeleteIcon />}
-                    onClick={deleteMedium}
-                >
-                    Delete
-                </Button>
-                {["image/png", "video/webm", "audio/webm"].includes(filetype) &&
+        <>
+            <Stack spacing={3} alignItems="center" direction="column" mb={6}>
+                <Stack direction="row" spacing={2}>
                     <Button
                         variant='contained'
-                        color='secondary'
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate("/segment/" + objectId)}
+                        color='warning'
+                        startIcon={<DeleteIcon />}
+                        onClick={deleteMedium}
                     >
-                        Add segment
+                        Delete
                     </Button>
-                }
-            </Stack>
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableBody>
-                        <TableRow>
-                            <TableCell sx={{ verticalAlign: 'center' }}>Source</TableCell>
-                            <TableCell>
-                                <Button onClick={() => window.open(BACKEND_URL + "/" + objectId, "_blank")} startIcon={<OpenInNewIcon />} >Open</Button>
-                            </TableCell>
-                        </TableRow>
-                        {filename && <TableRow>
-                            <TableCell>File name</TableCell>
-                            <TableCell>{filename}</TableCell>
-                        </TableRow>}
-                        {filetype && <TableRow>
-                            <TableCell>File type</TableCell>
-                            <TableCell>{filetype}</TableCell>
-                        </TableRow>}
-                        {rawfiletype && <TableRow>
-                            <TableCell>Raw file type</TableCell>
-                            <TableCell>{rawfiletype}</TableCell>
-                        </TableRow>}
-                        {dimensions && <TableRow>
-                            <TableCell>Dimensions</TableCell>
-                            <TableCell>{dimensions}</TableCell>
-                        </TableRow>}
-                        {captions.length > 0 &&
+                    {["image/png", "video/webm", "audio/webm"].includes(filetype) &&
+                        <Button
+                            variant='contained'
+                            color='secondary'
+                            startIcon={<AddIcon />}
+                            onClick={() => navigate("/segment/" + objectId)}
+                        >
+                            Add segment
+                        </Button>
+                    }
+                </Stack>
+                <TableContainer component={Paper}>
+                    <Table>
+                        <TableBody>
                             <TableRow>
-                                <TableCell>Captions</TableCell>
+                                <TableCell sx={{ verticalAlign: 'center' }}>Source</TableCell>
+                                <TableCell>
+                                    <Button onClick={() => window.open(BACKEND_URL + "/" + objectId, "_blank")} startIcon={<OpenInNewIcon />} >Open</Button>
+                                </TableCell>
+                            </TableRow>
+                            {filename && <TableRow>
+                                <TableCell>File name</TableCell>
+                                <TableCell>{filename}</TableCell>
+                            </TableRow>}
+                            {filetype && <TableRow>
+                                <TableCell>File type</TableCell>
+                                <TableCell>{filetype}</TableCell>
+                            </TableRow>}
+                            {rawfiletype && <TableRow>
+                                <TableCell>Raw file type</TableCell>
+                                <TableCell>{rawfiletype}</TableCell>
+                            </TableRow>}
+                            {dimensions && <TableRow>
+                                <TableCell>Dimensions</TableCell>
+                                <TableCell>{dimensions}</TableCell>
+                            </TableRow>}
+                            {captions.length > 0 &&
+                                <TableRow>
+                                    <TableCell>Captions</TableCell>
+                                    <TableCell>
+                                        <Stack direction="column">
+                                            {captions.map((c) => (
+                                                <Box>{c}</Box>
+                                            ))}
+                                        </Stack>
+                                    </TableCell>
+                                </TableRow>
+                            }
+                            {segmenttype && <TableRow>
+                                <TableCell>Segment Type</TableCell>
+                                <TableCell>{segmenttype}</TableCell>
+                            </TableRow>}
+                            {category && <TableRow>
+                                <TableCell>Category</TableCell>
+                                <TableCell>{category}</TableCell>
+                            </TableRow>}
+                            {segmentOf && <TableRow>
+                                <TableCell>Segment of</TableCell>
+                                <TableCell sx={{ cursor: 'pointer' }} onClick={selectOf}><FileDisplay isPreview filedata={segmentOf} filetype={"image"} /></TableCell>
+                            </TableRow>}
+                            {filetype && !filetype.startsWith("image") && segments.length > 0 && <TableRow>
+                                <TableCell style={{ verticalAlign: 'top' }}>Segments</TableCell>
                                 <TableCell>
                                     <Stack direction="column">
-                                        {captions.map((c) => (
-                                            <Box>{c}</Box>
+                                        {segments.map((s) => (
+                                            <Box sx={{ cursor: 'pointer' }} onClick={() => selectSegment(s.url)}>
+                                                <FileDisplay isPreview filedata={s.url.replace("<", "").replace(">", "")} filetype={"image"} />
+                                            </Box>
                                         ))}
                                     </Stack>
                                 </TableCell>
-                            </TableRow>
-                        }
-                        {segmenttype && <TableRow>
-                            <TableCell>Segment Type</TableCell>
-                            <TableCell>{segmenttype}</TableCell>
-                        </TableRow>}
-                        {category && <TableRow>
-                            <TableCell>Category</TableCell>
-                            <TableCell>{category}</TableCell>
-                        </TableRow>}
-                        {segmentOf && <TableRow>
-                            <TableCell>Segment of</TableCell>
-                            <TableCell sx={{ cursor: 'pointer' }} onClick={selectOf}><FileDisplay isPreview filedata={segmentOf} filetype={"image"} /></TableCell>
-                        </TableRow>}
-                        {filetype && !filetype.startsWith("image") && <TableRow>
-                            <TableCell style={{ verticalAlign: 'top' }}>Segments</TableCell>
-                            <TableCell>
-                                <Stack direction="column">
-                                    {segments.map((s) => (
-                                        <Box sx={{ cursor: 'pointer' }} onClick={() => selectSegment(s.url)}>
-                                            <FileDisplay filedata={s.url.replace("<", "").replace(">", "")} filetype={"image"} />
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            </TableCell>
-                        </TableRow>}
-                        {similar.length > 0 && <TableRow>
-                            <TableCell style={{ verticalAlign: 'top' }}>Similar Media Items</TableCell>
-                            <TableCell>
-                                <Stack direction="column">
-                                    {similar.map((s) => (
-                                        <Box sx={{ cursor: 'pointer' }} onClick={() => selectSegment(s)}>
-                                            <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            </TableCell>
-                        </TableRow>}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Stack>
+                            </TableRow>}
+                            {intersectable.length > 0 && <TableRow>
+                                <TableCell style={{ verticalAlign: 'top' }}>Intersect with</TableCell>
+                                <TableCell>
+                                    <Stack direction="column" spacing={1}>
+                                        {intersectable.map((s) => (
+                                            <Box 
+                                            sx={{ cursor: 'pointer', border: s === selectIntersect ? '4px solid red' : '4px solid transparent' }} 
+                                            onClick={() => selectToIntersect(s)}
+                                            >
+                                                <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
+                                            </Box>
+                                        ))}
+                                        <Button variant='contained' color='secondary' disabled={!selectIntersect} onClick={intersectWith}>Confirm</Button>
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>}
+                            {similar.length > 0 && <TableRow>
+                                <TableCell style={{ verticalAlign: 'top' }}>Similar Media Items</TableCell>
+                                <TableCell>
+                                    <Stack direction="column">
+                                        {similar.map((s) => (
+                                            <Box sx={{ cursor: 'pointer' }} onClick={() => selectSegment(s)}>
+                                                <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Stack>
+            <SegmentDialog
+                triggerSnackbar={triggerSnackbar}
+                url={url}
+                open={open}
+                onClose={() => setOpen(false)}
+                filetype={filetype}
+            />
+        </>
     )
 
     return (
