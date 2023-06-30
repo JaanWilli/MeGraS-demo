@@ -97,7 +97,7 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
     }
 
     const confirm = () => {
-        let timestamp = slider / 100 * playerRef.current.getDuration()
+        let timestamp = 1000 * slider / 100 * playerRef.current.getDuration()
         var newRotoscope;
         if (shape.dim !== undefined) {
             const x = shape.dim.x

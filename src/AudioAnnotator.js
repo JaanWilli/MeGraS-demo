@@ -70,7 +70,7 @@ const AudioAnnotator = ({ triggerSnackbar, id }) => {
     }
 
     const confirm = () => {
-        const url = audioUrl + "/segment/time/" + slider.join("-")
+        const url = audioUrl + "/segment/time/" + slider.map(s => s * 1000).join("-")
         console.log(url)
         setOpen(true)
         setUrl(url)
