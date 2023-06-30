@@ -115,7 +115,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     body: JSON.stringify({
                         "s": [],
                         "p": ["<http://megras.org/schema#segmentOf>"],
-                        "o": ["<" + BACKEND_URL + "/" + objectId.slice(0, objectId.indexOf("/")) + ">"]
+                        "o": segOf.map(s => "<" + s + ">")
                     })
                 }
                 response = await fetch(BACKEND_URL + "/query/quads", options)

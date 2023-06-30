@@ -53,7 +53,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Library triggerSnackbar={triggerSnackbar} />} />
           <Route path="/add" element={<ImageUpload triggerSnackbar={triggerSnackbar} />} />
-          <Route path="/segment/:id" element={<MediaAnnotator triggerSnackbar={triggerSnackbar} />} />
+          <Route path="/segment/*" element={<MediaAnnotator triggerSnackbar={triggerSnackbar} />} />
           <Route path="/coco" element={<CocoImporter triggerSnackbar={triggerSnackbar} />} />
           <Route path="/query" element={<Query triggerSnackbar={triggerSnackbar} />} />
           <Route path="/collage" element={<CollageEditor triggerSnackbar={triggerSnackbar} />} />

@@ -8,7 +8,7 @@ import { BACKEND_URL } from './Api';
 
 
 function MediaAnnotator({ triggerSnackbar }) {
-    const { id } = useParams();
+    const id = useParams()["*"]
 
     const [type, setType] = React.useState()
 
