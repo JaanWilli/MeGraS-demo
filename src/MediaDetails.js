@@ -24,8 +24,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
     const [rawfiletype, setRawFiletype] = React.useState()
     const [filetype, setFiletype] = React.useState()
     const [dimensions, setDimensions] = React.useState()
-    const [segmenttype, setSegmentType] = React.useState()
-    const [segmentOf, setSegmentOf] = React.useState()
+    const [segmenttype, setSegmentType] = React.useState([])
+    const [segmentOf, setSegmentOf] = React.useState([])
     const [captions, setCaptions] = React.useState([])
     const [category, setCategory] = React.useState()
     const [intersectable, setIntersectable] = React.useState([])
@@ -54,6 +54,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
             let data = await response.json()
 
             let c = []
+            let segType = []
+            let segOf = []
             let embed = null
             let bounds = []
             data.results.forEach((res) => {
@@ -70,11 +72,11 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     dim = dim.filter((d, i) => d !== "-" && i % 2 == 1)
                     setDimensions(dim.join(" x "))
                 } else if (res.p === "<http://megras.org/schema#segmentType>") {
-                    setSegmentType(res.o.replace("^^String", ""))
+                    segType.push(res.o.replace("^^String", ""))
                 } else if (res.p === "<https://schema.org/category>") {
                     setCategory(res.o.replace("^^String", ""))
                 } else if (res.p === "<http://megras.org/schema#segmentOf>") {
-                    setSegmentOf(res.o.replace("<", "").replace(">", ""))
+                    segOf.push(res.o.replace("<", "").replace(">", ""))
                 } else if (res.p === "<http://megras.org/schema#categoryVector>" ||
                     res.p === "<http://megras.org/schema#captionVector>") {
                     embed = res.o.replace("[", "").replace("]^^DoubleVector", "").split(",")
@@ -83,6 +85,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 }
             })
             setCaptions(c)
+            setSegmentType(segType)
+            setSegmentOf(segOf)
 
             let isSegment = objectId.includes("/c/")
             if (isSegment) {
@@ -219,17 +223,15 @@ const MediaDetails = ({ triggerSnackbar }) => {
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         if (response.ok) {
-            return navigate("/")
+            return navigate(-1)
         } else {
             console.log(response.statusText)
         }
     }
 
-    const selectOf = () => {
-        if (segmentOf) {
-            let uri = segmentOf.replace(BACKEND_URL, "")
-            return navigate(uri)
-        }
+    const selectOf = (s) => {
+        let uri = s.replace(BACKEND_URL, "")
+        return navigate(uri)
     }
 
     const selectSegment = (url) => {
@@ -334,17 +336,23 @@ const MediaDetails = ({ triggerSnackbar }) => {
                                     </TableCell>
                                 </TableRow>
                             }
-                            {segmenttype && <TableRow>
+                            {segmenttype.length > 0 && <TableRow>
                                 <TableCell>Segment Type</TableCell>
-                                <TableCell>{segmenttype}</TableCell>
+                                <TableCell>{segmenttype.join(" + ")}</TableCell>
                             </TableRow>}
                             {category && <TableRow>
                                 <TableCell>Category</TableCell>
                                 <TableCell>{category}</TableCell>
                             </TableRow>}
-                            {segmentOf && <TableRow>
-                                <TableCell>Segment of</TableCell>
-                                <TableCell sx={{ cursor: 'pointer' }} onClick={selectOf}><FileDisplay isPreview filedata={segmentOf} filetype={"image"} /></TableCell>
+                            {segmentOf.length > 0 && <TableRow>
+                                <TableCell style={{ verticalAlign: 'top' }}>Segment of</TableCell>
+                                <TableCell>
+                                    {segmentOf.map((s) => (
+                                        <Box sx={{ cursor: 'pointer' }} onClick={() => selectOf(s)}>
+                                            <FileDisplay  isPreview filedata={s} filetype={"image"} />
+                                        </Box>
+                                    ))}
+                                </TableCell>
                             </TableRow>}
                             {filetype && !filetype.startsWith("image") && segments.length > 0 && <TableRow>
                                 <TableCell style={{ verticalAlign: 'top' }}>Segments</TableCell>
@@ -363,9 +371,9 @@ const MediaDetails = ({ triggerSnackbar }) => {
                                 <TableCell>
                                     <Stack direction="column" spacing={1}>
                                         {intersectable.map((s) => (
-                                            <Box 
-                                            sx={{ cursor: 'pointer', border: s === selectIntersect ? '4px solid red' : '4px solid transparent' }} 
-                                            onClick={() => selectToIntersect(s)}
+                                            <Box
+                                                sx={{ cursor: 'pointer', border: s === selectIntersect ? '4px solid red' : '4px solid transparent' }}
+                                                onClick={() => selectToIntersect(s)}
                                             >
                                                 <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
                                             </Box>

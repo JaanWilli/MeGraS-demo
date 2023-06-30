@@ -124,7 +124,7 @@ function VideoTimeAnnotator({ triggerSnackbar, id }) {
                 url={url}
                 open={open}
                 onClose={() => setOpen(false)}
-                filetype={"audio/webm"}
+                filetype={"video/webm"}
             />
         </>
     );
