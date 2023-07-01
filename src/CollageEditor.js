@@ -1,16 +1,17 @@
-import { Box, Button, Grid, IconButton, Paper, Stack, TextField, Tooltip } from '@mui/material';
+import { Box, Button, CircularProgress, Grid, IconButton, Paper, Stack, TextField, Tooltip } from '@mui/material';
 import React from 'react';
 import { Image, Layer, Rect, Stage, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
-import BackspaceIcon from '@mui/icons-material/Backspace';
+import CheckIcon from '@mui/icons-material/Check';
 import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { BACKEND_URL, PREDICTOR_URL } from './Api';
+import { useNavigate } from 'react-router';
 
 
 // for details, see https://konvajs.org/docs/react/Transformer.html
@@ -61,6 +62,7 @@ const ImageElement = ({ shapeProps, url, isSelected, width, height, onSelect, on
                                 y: node.y(),
                                 width: Math.max(5, node.width() * scaleX),
                                 height: Math.max(node.height() * scaleY),
+                                rotation: node.rotation()
                             });
                         }}
                     />
@@ -82,10 +84,12 @@ const ImageElement = ({ shapeProps, url, isSelected, width, height, onSelect, on
 };
 
 const CollageEditor = ({ triggerSnackbar }) => {
+    const navigate = useNavigate()
 
-    const [width, setWidth] = React.useState()
-    const [height, setHeight] = React.useState()
-    const [hasCanvas, setHasCanvas] = React.useState(false)
+    const [width, setWidth] = React.useState(800)
+    const [height, setHeight] = React.useState(500)
+    const [tempWidth, setTempWidth] = React.useState(800)
+    const [tempHeight, setTempHeight] = React.useState(500)
 
     const [allImages, setAllImages] = React.useState([])
     const [allSegments, setAllSegments] = React.useState([])
@@ -96,6 +100,7 @@ const CollageEditor = ({ triggerSnackbar }) => {
     const [selectedId, setSelected] = React.useState(null);
 
     const [query, setQuery] = React.useState();
+    const [loading, setLoading] = React.useState(false);
 
     const stageref = React.useRef();
     const backgroundRef = React.useRef();
@@ -125,12 +130,14 @@ const CollageEditor = ({ triggerSnackbar }) => {
         return () => { }
     }, [])
 
-    const createCanvas = () => {
-        setHasCanvas(true)
+    const applyDimensions = () => {
+        setWidth(tempWidth)
+        setHeight(tempHeight)
     }
 
     const moveElement = (up) => {
         setSelected(null)
+        console.log(elements)
         let elems = elements.slice()
         let idx = elems.findIndex(e => e.id == selectedId)
         let element = elems.splice(idx, 1)[0];
@@ -166,13 +173,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
     const deleteAll = () => {
         setElements([])
         setSelected(null)
-    }
-
-    const deleteCanvas = () => {
-        setWidth()
-        setHeight()
-        deleteAll()
-        setHasCanvas(false)
     }
 
     const search = async (images) => {
@@ -240,6 +240,7 @@ const CollageEditor = ({ triggerSnackbar }) => {
     }
 
     const saveImage = async () => {
+        setLoading(true)
         let dataURL = stageref.current.toDataURL()
         let response = await fetch(dataURL)
         if (response == undefined) return
@@ -253,7 +254,8 @@ const CollageEditor = ({ triggerSnackbar }) => {
         if (response == undefined) return
         let data = await response.json()
         let uri = data["collage.jpg"]["uri"]
-        window.open(BACKEND_URL + "/" + uri, '_blank').focus();
+        setLoading(false)
+        return navigate("/" + uri)
     }
 
     const toSVG = () => {
@@ -307,119 +309,121 @@ const CollageEditor = ({ triggerSnackbar }) => {
                 <div className='App-subtitle'>Create a collage.</div>
             </div>
             <div className="App-content">
-                {!hasCanvas ?
-                    <Stack direction="column" spacing={2}>
-                        <Stack direction="row" alignItems="center" spacing={2}>
-                            <TextField sx={{ width: '75px' }} label="Width" onChange={(e) => setWidth(Number(e.target.value))} />
-                            <Box>x</Box>
-                            <TextField sx={{ width: '75px' }} label="Height" value={height} onChange={(e) => setHeight(Number(e.target.value))} />
-                        </Stack>
-                        <Button variant='contained' color='secondary' disabled={!width || !height} onClick={createCanvas}>Create Canvas</Button>
-                    </Stack>
-                    :
-                    <Stack direction="row" alignItems="start" spacing={2}>
-                        <Stack direction="row">
-                            {[images, segments].map((collection) => (
-                                <Stack direction="column" spacing={2} mx={1}>
-                                    <Box width='10vw'>
-                                        <TextField
-                                            label="Filter"
-                                            onChange={(e) => setQuery(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    let searchImages = collection == images
-                                                    search(searchImages)
-                                                }
-                                            }}
-                                        />
-                                    </Box>
-                                    <Stack
-                                        direction="column"
-                                        maxWidth='10vw'
-                                        height="70vh"
-                                        overflow="scroll"
-                                        justifyContent='flex-start'
-                                        alignItems='center'
-                                        spacing={2}
-                                    >
-                                        {collection.map((s, i) => (
-                                            <Paper sx={{ height: '10vh' }} onClick={() => addToCanvas(s)}>
-                                                <img
-                                                    key={i}
-                                                    src={s.replace("<", "").replace(">", "")}
-                                                    height='100%'
-                                                    width='100%'
-                                                    style={{ objectFit: 'scale-down', cursor: 'copy' }}
+                {loading ? <CircularProgress /> :
+                    <>
 
-                                                />
-                                            </Paper>
-                                        ))}
+                        <Stack direction="row" alignItems="start" spacing={2}>
+                            <Stack direction="row">
+                                {[images, segments].map((collection) => (
+                                    <Stack direction="column" spacing={2} mx={1}>
+                                        <Box width='10vw'>
+                                            <TextField
+                                                label="Filter"
+                                                onChange={(e) => setQuery(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        let searchImages = collection == images
+                                                        search(searchImages)
+                                                    }
+                                                }}
+                                            />
+                                        </Box>
+                                        <Stack
+                                            direction="column"
+                                            maxWidth='10vw'
+                                            height="70vh"
+                                            overflow="scroll"
+                                            justifyContent='flex-start'
+                                            alignItems='center'
+                                            spacing={2}
+                                        >
+                                            {collection.map((s, i) => (
+                                                <Paper sx={{ height: '10vh' }} onClick={() => addToCanvas(s)}>
+                                                    <img
+                                                        key={i}
+                                                        src={s.replace("<", "").replace(">", "")}
+                                                        height='100%'
+                                                        width='100%'
+                                                        style={{ objectFit: 'scale-down', cursor: 'copy' }}
+
+                                                    />
+                                                </Paper>
+                                            ))}
+                                        </Stack>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                            <Stack direction="column" spacing={2} justifyContent="center" alignItems="center">
+                                <Stack direction="row" alignItems="center" spacing={2}>
+                                    <TextField sx={{ width: '75px' }} label="Width" value={tempWidth} onChange={(e) => setTempWidth(Number(e.target.value))} />
+                                    <Box>x</Box>
+                                    <TextField sx={{ width: '75px' }} label="Height" value={tempHeight} onChange={(e) => setTempHeight(Number(e.target.value))} />
+                                    <IconButton color='secondary' disabled={tempWidth == 0 || tempHeight == 0} onClick={applyDimensions}><CheckIcon /></IconButton>
+                                </Stack>
+                                <Stack direction="row" spacing={2}>
+
+                                    <Stage ref={stageref} width={width} height={height} onMouseDown={checkDeselect}
+                                        onTouchStart={checkDeselect}>
+                                        <Layer>
+                                            <Rect
+                                                ref={backgroundRef}
+                                                x={0} y={0}
+                                                width={width} height={height}
+                                                fill='white'
+                                            />
+                                            {elements.map((element, i) => {
+                                                return (
+                                                    <ImageElement
+                                                        id={i}
+                                                        url={element.url}
+                                                        shapeProps={element}
+                                                        isSelected={element.id === selectedId}
+                                                        width={width}
+                                                        height={height}
+                                                        onSelect={() => {
+                                                            setSelected(element.id);
+                                                        }}
+                                                        onChange={(newAttrs) => {
+                                                            const els = elements.slice();
+                                                            els[i] = newAttrs;
+                                                            setElements(els);
+                                                        }}
+                                                    />
+                                                )
+                                            }
+                                            )}
+                                        </Layer>
+                                    </Stage>
+                                    <Stack direction="column" height={height} justifyContent="space-between">
+                                        <Stack spacing={2}>
+                                            <Tooltip title="Remove selected" placement="right">
+                                                <IconButton disabled={selectedId == null} onClick={deleteSelected}><DeleteIcon /></IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Remove all" placement="right">
+                                                <IconButton disabled={elements.length == 0} onClick={deleteAll}><ClearIcon /></IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                        <Stack spacing={2}>
+                                            <Tooltip title="Move to front" placement="right">
+                                                <IconButton disabled={selectedId == null} onClick={() => moveElement(true)}><ArrowDropUpIcon /></IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Move to back" placement="right">
+                                                <IconButton disabled={selectedId == null} onClick={() => moveElement(false)}><ArrowDropDownIcon /></IconButton>
+                                            </Tooltip>
+                                        </Stack>
+                                        <Stack spacing={2}>
+                                            <Tooltip title="Download as SVG" placement="right">
+                                                <Button variant="contained" disabled={selectedId != null} onClick={toSVG}><DownloadIcon /></Button>
+                                            </Tooltip>
+                                            <Tooltip title="Save" placement="right">
+                                                <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={saveImage}><SaveIcon /></Button>
+                                            </Tooltip>
+                                        </Stack>
                                     </Stack>
                                 </Stack>
-                            ))}
-                        </Stack>
-                        <Stage ref={stageref} width={width} height={height} onMouseDown={checkDeselect}
-                            onTouchStart={checkDeselect}>
-                            <Layer>
-                                <Rect
-                                    ref={backgroundRef}
-                                    x={0} y={0}
-                                    width={width} height={height}
-                                    fill='white'
-                                />
-                                {elements.map((element, i) => {
-                                    return (
-                                        <ImageElement
-                                            id={i}
-                                            url={element.url}
-                                            shapeProps={element}
-                                            isSelected={element.id === selectedId}
-                                            width={width}
-                                            height={height}
-                                            onSelect={() => {
-                                                setSelected(element.id);
-                                            }}
-                                            onChange={(newAttrs) => {
-                                                const els = elements.slice();
-                                                els[i] = newAttrs;
-                                                setElements(els);
-                                            }}
-                                        />
-                                    )
-                                }
-                                )}
-                            </Layer>
-                        </Stage>
-                        <Stack direction="column" height={height} justifyContent="space-between">
-                            <Stack spacing={2}>
-                                <Tooltip title="Remove selected" placement="right">
-                                    <IconButton disabled={selectedId == null} onClick={deleteSelected}><DeleteIcon /></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Remove all" placement="right">
-                                    <IconButton disabled={elements.length == 0} onClick={deleteAll}><ClearIcon /></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Remove canvas" placement="right">
-                                    <IconButton onClick={deleteCanvas}><BackspaceIcon /></IconButton>
-                                </Tooltip>
-                            </Stack>
-                            <Stack spacing={2}>
-                                <Tooltip title="Move to front" placement="right">
-                                    <IconButton disabled={selectedId == null} onClick={() => moveElement(true)}><ArrowDropUpIcon /></IconButton>
-                                </Tooltip>
-                                <Tooltip title="Move to back" placement="right">
-                                    <IconButton disabled={selectedId == null} onClick={() => moveElement(false)}><ArrowDropDownIcon /></IconButton>
-                                </Tooltip>
-                            </Stack>
-                            <Stack spacing={2}>
-                                <Tooltip title="Save" placement="right">
-                                    <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={saveImage}><SaveIcon /></Button>
-                                </Tooltip>
-                                <Tooltip title="Download as SVG" placement="right">
-                                    <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={toSVG}><DownloadIcon /></Button>
-                                </Tooltip>
                             </Stack>
                         </Stack>
-                    </Stack>
+                    </>
                 }
             </div>
         </>
