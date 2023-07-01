@@ -2,19 +2,19 @@ import { editor } from '@overlapmedia/imagemapper';
 import React from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import { Slider, TextField } from '@mui/material';
+import { Box, Slider, TextField } from '@mui/material';
 import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
 import PentagonIcon from '@mui/icons-material/Pentagon';
 import RectangleIcon from '@mui/icons-material/Rectangle';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import captureVideoFrame from "capture-video-frame";
 import ReactPlayer from "react-player";
-import SegmentDialog from './SegmentDialog';
 import { BACKEND_URL } from './Api';
 
 
-function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
+function VideoRotoscopeAnnotator({ id, segment }) {
     const videoUrl = BACKEND_URL + "/" + id
 
     const elementRef = React.useRef(null);
@@ -23,9 +23,6 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
     const [myEditor, setMyEditor] = React.useState();
     const [shape, setShape] = React.useState();
     const [mode, setMode] = React.useState("select");
-
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
 
     const [width, setWidth] = React.useState();
     const [height, setHeight] = React.useState();
@@ -120,9 +117,7 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
     const complete = () => {
         rotoscope.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts))
         const url = videoUrl + "/segment/rotoscope/" + rotoscope.map(r => r.uri).join(";")
-        console.log(url)
-        setOpen(true)
-        setUrl(url)
+        segment(url)
     }
 
     return (
@@ -151,7 +146,7 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
                             <Button variant={mode === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
                             <Button variant={mode === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
                             <Button onClick={clear}><DeleteIcon /></Button>
-                            <Button variant="contained" onClick={() => confirm()}><CheckBoxIcon /></Button>
+                            <Button variant="contained" onClick={() => confirm()}><AddIcon /></Button>
                         </Stack>
                         <Button variant="contained" color='secondary' disabled={rotoscope.length == 0} onClick={() => complete()}><CheckBoxIcon /></Button>
                     </Stack>
@@ -170,14 +165,6 @@ function VideoRotoscopeAnnotator({ triggerSnackbar, id }) {
                     </Stack>
                 </Stack>
             }
-
-            <SegmentDialog
-                triggerSnackbar={triggerSnackbar}
-                url={url}
-                open={open}
-                onClose={() => setOpen(false)}
-                filetype="video/webm"
-            />
         </>
     );
 }

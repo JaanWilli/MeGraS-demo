@@ -1,26 +1,29 @@
 import React from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import { IconButton, Slider, TextField } from '@mui/material';
+import { CircularProgress, IconButton, Slider } from '@mui/material';
 import ReactAudioPlayer from 'react-audio-player';
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 
-import SegmentDialog from './SegmentDialog';
 import { BACKEND_URL } from './Api';
+import { useNavigate } from 'react-router';
+import { BACKEND_ERR } from './Errors';
 
 
 const AudioAnnotator = ({ triggerSnackbar, id }) => {
     const audioUrl = BACKEND_URL + "/" + id
 
+    const navigate = useNavigate()
+
     const playerRef = React.useRef(null);
     const [loaded, setLoaded] = React.useState(false);
     const [duration, setDuration] = React.useState(false);
 
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
+    const [loading, setLoading] = React.useState();
+
 
     const [current, setCurrent] = React.useState(0);
     const [slider, setSlider] = React.useState();
@@ -69,11 +72,15 @@ const AudioAnnotator = ({ triggerSnackbar, id }) => {
         }
     }
 
-    const confirm = () => {
+    const confirm = async () => {
         const url = audioUrl + "/segment/time/" + slider.map(s => s * 1000).join("-")
         console.log(url)
-        setOpen(true)
-        setUrl(url)
+        setLoading(true)
+        let response = await fetch(url).catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response.ok) {
+            setLoading(false)
+            navigate(response.url.replace(BACKEND_URL, ""))
+        }
     }
 
     return (
@@ -83,46 +90,43 @@ const AudioAnnotator = ({ triggerSnackbar, id }) => {
                 <div className='App-subtitle'>Define new segments of a video.</div>
             </div>
             <div className="App-content">
-                <ReactAudioPlayer
-                    ref={playerRef}
-                    src={audioUrl}
-                    onListen={onListen}
-                    listenInterval={100}
-                    onLoadedMetadata={hasLoaded}
-                />
-                <Stack mb={2} spacing={2} direction="row">
-                    <IconButton onClick={play}><PlayArrowIcon /></IconButton>
-                    <IconButton onClick={pause}><PauseIcon /></IconButton>
-                </Stack>
-                {loaded &&
+                {loading ? <CircularProgress /> :
                     <>
-                        <Slider
-                            valueLabelDisplay="auto"
-                            min={0}
-                            max={duration}
-                            value={current}
-                            onChange={(e, v) => changeTime(v)}
-                            style={{ width: '40%' }}
-                        /> <br />
-                        <Slider
-                            valueLabelDisplay="auto"
-                            min={0}
-                            max={duration}
-                            step={0.1}
-                            value={slider}
-                            onChange={setRange}
-                            style={{ width: '40%' }}
-                        /> <br />
-                        <Button variant="contained" color='secondary' onClick={confirm}><CheckBoxIcon /></Button>
+                        <ReactAudioPlayer
+                            ref={playerRef}
+                            src={audioUrl}
+                            onListen={onListen}
+                            listenInterval={100}
+                            onLoadedMetadata={hasLoaded}
+                        />
+                        <Stack mb={2} spacing={2} direction="row">
+                            <IconButton onClick={play}><PlayArrowIcon /></IconButton>
+                            <IconButton onClick={pause}><PauseIcon /></IconButton>
+                        </Stack>
+                        {loaded &&
+                            <>
+                                <Slider
+                                    valueLabelDisplay="auto"
+                                    min={0}
+                                    max={duration}
+                                    value={current}
+                                    onChange={(e, v) => changeTime(v)}
+                                    style={{ width: '40%' }}
+                                /> <br />
+                                <Slider
+                                    valueLabelDisplay="auto"
+                                    min={0}
+                                    max={duration}
+                                    step={0.1}
+                                    value={slider}
+                                    onChange={setRange}
+                                    style={{ width: '40%' }}
+                                /> <br />
+                                <Button variant="contained" color='secondary' onClick={confirm}><CheckBoxIcon /></Button>
+                            </>
+                        }
                     </>
                 }
-                <SegmentDialog
-                    triggerSnackbar={triggerSnackbar}
-                    url={url}
-                    open={open}
-                    onClose={() => setOpen(false)}
-                    filetype={"audio/webm"}
-                />
             </div>
         </>
     )

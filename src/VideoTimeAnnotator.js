@@ -7,21 +7,16 @@ import ReactPlayer from "react-player";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
-
-import SegmentDialog from './SegmentDialog';
 import { BACKEND_URL } from './Api';
 
 
-function VideoTimeAnnotator({ triggerSnackbar, id }) {
+function VideoTimeAnnotator({ id, segment }) {
     const videoUrl = BACKEND_URL + "/" + id
 
     const playerRef = React.useRef(null);
     const [loaded, setLoaded] = React.useState(false);
     const [duration, setDuration] = React.useState(false);
     const [playing, setPlaying] = React.useState(false);
-
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
 
     const [current, setCurrent] = React.useState(0);
     const [slider, setSlider] = React.useState();
@@ -68,9 +63,7 @@ function VideoTimeAnnotator({ triggerSnackbar, id }) {
 
     const confirm = () => {
         const url = videoUrl + "/segment/time/" + slider.map(s => s * 1000).join("-")
-        console.log(url)
-        setOpen(true)
-        setUrl(url)
+        segment(url)
     }
 
     return (
@@ -118,14 +111,6 @@ function VideoTimeAnnotator({ triggerSnackbar, id }) {
                     <Button variant="contained" color='secondary' onClick={confirm}><CheckBoxIcon /></Button>
                 </>
             }
-
-            <SegmentDialog
-                triggerSnackbar={triggerSnackbar}
-                url={url}
-                open={open}
-                onClose={() => setOpen(false)}
-                filetype={"video/webm"}
-            />
         </>
     );
 }

@@ -13,14 +13,15 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import SearchIcon from '@mui/icons-material/Search';
 
-import ImageDialog from './SegmentDialog';
-import { PREDICTOR_ERR } from './Errors';
-import SegmentDialog from './SegmentDialog';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 import { BACKEND_URL, PREDICTOR_URL } from './Api';
+import { useNavigate } from 'react-router';
 
 
 function ImageAnnotator({ triggerSnackbar, id }) {
     const imageUrl = BACKEND_URL + "/" + id
+
+    const navigate = useNavigate();
 
     const elementRef = React.useRef(null);
     const canvas = React.createRef(null);
@@ -32,11 +33,8 @@ function ImageAnnotator({ triggerSnackbar, id }) {
     const [brushRadius, setBrushRadius] = React.useState(20);
     const [prompt, setPrompt] = React.useState();
     const [mask, setMask] = React.useState();
+    const [predictLoading, setPredictLoading] = React.useState();
     const [loading, setLoading] = React.useState();
-    const [category, setCategory] = React.useState();
-
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
 
     const [width, setWidth] = React.useState();
     const [height, setHeight] = React.useState();
@@ -100,7 +98,7 @@ function ImageAnnotator({ triggerSnackbar, id }) {
     }
 
     const predict = async () => {
-        setLoading(true)
+        setPredictLoading(true)
         var options = {
             method: 'POST',
             headers: {
@@ -117,7 +115,7 @@ function ImageAnnotator({ triggerSnackbar, id }) {
         if (response == undefined) return
         let base64mask = await response.text()
         setMask(base64mask)
-        setLoading(false)
+        setPredictLoading(false)
     }
 
     const confirmShape = () => {
@@ -135,11 +133,7 @@ function ImageAnnotator({ triggerSnackbar, id }) {
             }
             url = imageUrl + "/segment/polygon/" + points.join(",")
         }
-        console.log(url)
-
-        setOpen(true)
-        setUrl(url)
-        clear()
+        segment(url)
     }
 
     const confirmMask = async () => {
@@ -163,11 +157,17 @@ function ImageAnnotator({ triggerSnackbar, id }) {
         let base64binary = base64binaryfull.substring(base64binaryfull.indexOf(',') + 1).replace(/\+/g, '-').replace(/\//g, '_')
 
         let url = imageUrl + "/segment/mask/" + base64binary
-        console.log(url)
+        segment(url)
+    }
 
-        setOpen(true)
-        setUrl(url)
-        clear()
+    const segment = async (url) => {
+        console.log(url)
+        setLoading(true)
+        let response = await fetch(url).catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response.ok) {
+            setLoading(false)
+            navigate(response.url.replace(BACKEND_URL, ""))
+        }
     }
 
     return (
@@ -177,87 +177,84 @@ function ImageAnnotator({ triggerSnackbar, id }) {
                 <div className='App-subtitle'>Define new segments of an image.</div>
             </div>
             <div className="App-content">
-                <Stack spacing={2} direction="row" marginBottom={2}>
-                    <Button variant={mode === "shape" ? "contained" : "text"} onClick={() => changeMode("shape")}>Shapes</Button>
-                    <Button variant={mode === "freehand" ? "contained" : "text"} onClick={() => changeMode("freehand")}>Freehand</Button>
-                    <Button variant={mode === "predict" ? "contained" : "text"} onClick={() => changeMode("predict")}>Predict</Button>
-                </Stack>
-                {mode === "freehand" &&
-                    <Stack spacing={2} direction="row">
-                        <Stack spacing={2} direction="column" justifyContent="space-between">
-                            <Stack spacing={2}>
-                                <TextField size='small' style={{ width: '60px', backgroundColor: 'white' }} value={brushRadius} onChange={b => setBrushRadius(b.target.value)}>brush</TextField>
-                                <Button onClick={() => canvas.current.undo()}><UndoIcon /></Button>
-                                <Button onClick={clear}><DeleteIcon /></Button>
+                {loading ? <CircularProgress /> :
+                    <>
+                        <Stack spacing={2} direction="row" marginBottom={2}>
+                            <Button variant={mode === "shape" ? "contained" : "text"} onClick={() => changeMode("shape")}>Shapes</Button>
+                            <Button variant={mode === "freehand" ? "contained" : "text"} onClick={() => changeMode("freehand")}>Freehand</Button>
+                            <Button variant={mode === "predict" ? "contained" : "text"} onClick={() => changeMode("predict")}>Predict</Button>
+                        </Stack>
+                        {mode === "freehand" &&
+                            <Stack spacing={2} direction="row">
+                                <Stack spacing={2} direction="column" justifyContent="space-between">
+                                    <Stack spacing={2}>
+                                        <TextField size='small' style={{ width: '60px', backgroundColor: 'white' }} value={brushRadius} onChange={b => setBrushRadius(b.target.value)}>brush</TextField>
+                                        <Button onClick={() => canvas.current.undo()}><UndoIcon /></Button>
+                                        <Button onClick={clear}><DeleteIcon /></Button>
+                                    </Stack>
+                                    <Button variant="contained" color='secondary' onClick={() => confirmMask()}><CheckBoxIcon /></Button>
+                                </Stack>
+                                <Stack spacing={2} direction="column">
+                                    <ReactSketchCanvas
+                                        ref={canvas}
+                                        style={{ position: 'relative' }}
+                                        width={width}
+                                        height={height}
+                                        strokeColor='white'
+                                        backgroundImage={imageUrl}
+                                        strokeWidth={brushRadius}
+                                    />
+                                </Stack>
                             </Stack>
-                            <Button variant="contained" color='secondary' onClick={() => confirmMask()}><CheckBoxIcon /></Button>
-                        </Stack>
-                        <Stack spacing={2} direction="column">
-                            <ReactSketchCanvas
-                                ref={canvas}
-                                style={{ position: 'relative' }}
-                                width={width}
-                                height={height}
-                                strokeColor='white'
-                                backgroundImage={imageUrl}
-                                strokeWidth={brushRadius}
-                            />
-                        </Stack>
-                    </Stack>
-                }
-                {mode === "shape" &&
-                    <Stack spacing={2} direction="row">
-                        <Stack spacing={2} direction="column" justifyContent="space-between">
-                            <Stack spacing={2}>
-                                <Button variant={shapeType === "select" ? "contained" : "text"} onClick={() => select()}><HighlightAltIcon /></Button>
-                                <Button variant={shapeType === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
-                                <Button variant={shapeType === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
-                                <Button onClick={clear}><DeleteIcon /></Button>
+                        }
+                        {mode === "shape" &&
+                            <Stack spacing={2} direction="row">
+                                <Stack spacing={2} direction="column" justifyContent="space-between">
+                                    <Stack spacing={2}>
+                                        <Button variant={shapeType === "select" ? "contained" : "text"} onClick={() => select()}><HighlightAltIcon /></Button>
+                                        <Button variant={shapeType === "polygon" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("polygon")}><PentagonIcon /></Button>
+                                        <Button variant={shapeType === "rectangle" ? "contained" : "text"} disabled={shape !== undefined} onClick={() => draw("rectangle")}><RectangleIcon /></Button>
+                                        <Button onClick={clear}><DeleteIcon /></Button>
+                                    </Stack>
+                                    <Button variant="contained" color='secondary' disabled={!shape} onClick={() => confirmShape()}><CheckBoxIcon /></Button>
+                                </Stack>
+                                <Stack spacing={2} direction="column">
+                                    <svg
+                                        ref={elementRef}
+                                        version="1.1"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width={width}
+                                        height={height}
+                                        viewBox={`0, 0, ${width}, ${height}`}
+                                        preserveAspectRatio="xMinYMin"
+                                    />
+                                </Stack>
                             </Stack>
-                            <Button variant="contained" color='secondary' disabled={!shape} onClick={() => confirmShape()}><CheckBoxIcon /></Button>
-                        </Stack>
-                        <Stack spacing={2} direction="column">
-                            <svg
-                                ref={elementRef}
-                                version="1.1"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width={width}
-                                height={height}
-                                viewBox={`0, 0, ${width}, ${height}`}
-                                preserveAspectRatio="xMinYMin"
-                            />
-                        </Stack>
-                    </Stack>
-                }
-                {mode === "predict" &&
-                    <Stack spacing={2} direction="row">
-                        <Stack spacing={2} direction="column" justifyContent="space-between">
-                            <Stack spacing={2}>
-                                <TextField label="Prompt" onChange={(e) => setPrompt(e.target.value.toLowerCase())} />
-                                <Button onClick={predict}>{loading ? <CircularProgress /> : <SearchIcon />}</Button>
-                                <Button disabled={!mask} onClick={clear}><DeleteIcon /></Button>
+                        }
+                        {mode === "predict" &&
+                            <Stack spacing={2} direction="row">
+                                <Stack spacing={2} direction="column" justifyContent="space-between">
+                                    <Stack spacing={2}>
+                                        <TextField label="Prompt" onChange={(e) => setPrompt(e.target.value.toLowerCase())} />
+                                        <Button onClick={predict}>{predictLoading ? <CircularProgress /> : <SearchIcon />}</Button>
+                                        <Button disabled={!mask} onClick={clear}><DeleteIcon /></Button>
+                                    </Stack>
+                                    <Button color='secondary' disabled={!mask} onClick={() => confirmMask()}><CheckBoxIcon /></Button>
+                                </Stack>
+                                <Stack spacing={2} direction="column">
+                                    <img
+                                        src={imageUrl}
+                                        alt=""
+                                        style={{
+                                            maskImage: mask ? `url('${mask}')` : null,
+                                            WebkitMaskImage: mask ? `url('${mask}')` : null,
+                                        }}
+                                    ></img>
+                                </Stack>
                             </Stack>
-                            <Button color='secondary' disabled={!mask} onClick={() => confirmMask()}><CheckBoxIcon /></Button>
-                        </Stack>
-                        <Stack spacing={2} direction="column">
-                            <img
-                                src={imageUrl}
-                                alt=""
-                                style={{
-                                    maskImage: mask ? `url('${mask}')` : null,
-                                    WebkitMaskImage: mask ? `url('${mask}')` : null,
-                                }}
-                            ></img>
-                        </Stack>
-                    </Stack>
+                        }
+                    </>
                 }
-                <SegmentDialog
-                    triggerSnackbar={triggerSnackbar}
-                    url={url}
-                    open={open}
-                    onClose={() => setOpen(false)}
-                    filetype={"image/png"}
-                />
             </div>
         </>
     );

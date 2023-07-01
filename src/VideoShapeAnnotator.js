@@ -10,11 +10,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import captureVideoFrame from "capture-video-frame";
 import ReactPlayer from "react-player";
-import SegmentDialog from './SegmentDialog';
 import { BACKEND_URL } from './Api';
 
 
-function VideoShapeAnnotator({ triggerSnackbar, id }) {
+function VideoShapeAnnotator({ id, segment }) {
     const videoUrl = BACKEND_URL + "/" + id
 
     const elementRef = React.useRef(null);
@@ -23,9 +22,6 @@ function VideoShapeAnnotator({ triggerSnackbar, id }) {
     const [myEditor, setMyEditor] = React.useState();
     const [shape, setShape] = React.useState();
     const [mode, setMode] = React.useState("select");
-
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
 
     const [width, setWidth] = React.useState();
     const [height, setHeight] = React.useState();
@@ -109,11 +105,7 @@ function VideoShapeAnnotator({ triggerSnackbar, id }) {
             }
             url = videoUrl + "/segment/polygon/" + points.join(",")
         }
-        console.log(url)
-
-        setOpen(true)
-        setUrl(url)
-        clear()
+        segment(url)
     }
 
     return (
@@ -160,14 +152,6 @@ function VideoShapeAnnotator({ triggerSnackbar, id }) {
                     </Stack>
                 </Stack>
             }
-
-            <SegmentDialog
-                triggerSnackbar={triggerSnackbar}
-                url={url}
-                open={open}
-                onClose={() => setOpen(false)}
-                filetype="video/webm"
-            />
         </>
     );
 }
