@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableRow } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableRow, TextField } from '@mui/material';
 import React from 'react';
 import { useLocation, useParams } from 'react-router';
 import { useNavigate } from "react-router";
@@ -6,13 +6,14 @@ import { useNavigate } from "react-router";
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import SendIcon from '@mui/icons-material/Send';
 
 import MediaSegmentDetails from './MediaSegmentDetails';
 import ImageSegmentDetails from './ImageSegmentDetails';
-import { BACKEND_ERR } from './Errors';
-import { BACKEND_URL } from './Api';
+import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
+import { BACKEND_URL, PREDICTOR_URL } from './Api';
 import FileDisplay from './FileDisplay';
-import SegmentDialog from './SegmentDialog';
 
 const MediaDetails = ({ triggerSnackbar }) => {
     const objectId = useParams()["*"];
@@ -31,12 +32,14 @@ const MediaDetails = ({ triggerSnackbar }) => {
     const [intersectable, setIntersectable] = React.useState([])
     const [similar, setSimilar] = React.useState([])
 
+    const [tempCategory, setTempCategory] = React.useState()
+    const [tempCaption, setTempCaption] = React.useState()
+    const [captionLoading, setCaptionLoading] = React.useState(false)
+    const [intersectLoading, setIntersectLoading] = React.useState(false);
+
     const [segments, setSegments] = React.useState([])
 
     const [selectIntersect, setSelectIntersect] = React.useState();
-
-    const [open, setOpen] = React.useState(false);
-    const [url, setUrl] = React.useState();
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -218,12 +221,86 @@ const MediaDetails = ({ triggerSnackbar }) => {
         return () => { }
     }, [location.key])
 
+    const generateCaption = async () => {
+        setCaptionLoading(true)
+        let response = await fetch(PREDICTOR_URL + "/caption/" + objectId)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (response == undefined) return
+        let caption = await response.text()
+        setTempCaption(caption)
+        setCaptionLoading(false)
+    }
+
+    const sendCaption = async () => {
+        let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + tempCaption)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (embed_response == undefined) return
+        let embedding = await embed_response.text()
+
+        var options = {
+            method: 'POST',
+            body: JSON.stringify({
+                "quads": [{
+                    "s": "<" + BACKEND_URL + "/" + objectId + ">",
+                    "p": "<https://schema.org/caption>",
+                    "o": tempCaption + "^^String"
+                },
+                {
+                    "s": "<" + BACKEND_URL + "/" + objectId + ">",
+                    "p": "<http://megras.org/schema#captionVector>",
+                    "o": embedding.trim()
+                }
+                ]
+            })
+        }
+        let response = await fetch(BACKEND_URL + "/add/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response == undefined) return
+        if (response.ok) {
+            setCaptions([tempCaption])
+        }
+    }
+
+    const sendCategory = async () => {
+        let embed_response = await fetch(PREDICTOR_URL + "/embedding/" + tempCategory)
+            .catch(() => triggerSnackbar(PREDICTOR_ERR, "error"))
+        if (embed_response == undefined) return
+        let embedding = await embed_response.text()
+
+        var options = {
+            method: 'POST',
+            body: JSON.stringify({
+                "quads": [{
+                    "s": "<" + BACKEND_URL + "/" + objectId + ">",
+                    "p": "<https://schema.org/category>",
+                    "o": tempCategory + "^^String"
+                },
+                {
+                    "s": "<" + BACKEND_URL + "/" + objectId + ">",
+                    "p": "<http://megras.org/schema#categoryVector>",
+                    "o": embedding.trim()
+                }
+                ]
+            })
+        }
+        let response = await fetch(BACKEND_URL + "/add/quads", options)
+            .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response.ok) {
+            setCategory(tempCategory)
+        }
+    }
+
     const deleteMedium = async () => {
         let response = await fetch(BACKEND_URL + "/" + objectId, { method: 'DELETE' })
             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response == undefined) return
         if (response.ok) {
-            return navigate(-1)
+            if (segmentOf.length > 0) {
+                let uri = segmentOf[0].replace(BACKEND_URL, "")
+                return navigate(uri)
+            } else {
+                return navigate("/")
+            }
         } else {
             console.log(response.statusText)
         }
@@ -271,9 +348,13 @@ const MediaDetails = ({ triggerSnackbar }) => {
         })
 
         let url = BACKEND_URL + "/" + objectId + "/segment/" + type + "/" + definition
-        setOpen(true)
-        setUrl(url)
         console.log(url)
+        setIntersectLoading(true)
+        response = await fetch(url).catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+        if (response.ok) {
+            setIntersectLoading(false)
+            navigate(response.url.replace(BACKEND_URL, ""))
+        }
     }
 
     const details = (
@@ -324,15 +405,29 @@ const MediaDetails = ({ triggerSnackbar }) => {
                                 <TableCell>Dimensions</TableCell>
                                 <TableCell>{dimensions}</TableCell>
                             </TableRow>}
-                            {captions.length > 0 &&
+                            {segmenttype.length == 0 &&
                                 <TableRow>
-                                    <TableCell>Captions</TableCell>
+                                    <TableCell>Caption</TableCell>
                                     <TableCell>
-                                        <Stack direction="column">
-                                            {captions.map((c) => (
-                                                <Box>{c}</Box>
-                                            ))}
-                                        </Stack>
+                                        {captions.length > 0 ?
+                                            <Stack direction="column">
+                                                {captions.map((c) => (
+                                                    <Box>{c}</Box>
+                                                ))}
+                                            </Stack>
+                                            :
+                                            <Stack spacing={2} direction="row" justifyContent="center" alignItems="center">
+                                                <TextField sx={{ width: '18vw' }} value={tempCaption} onChange={(e) => setTempCaption(e.target.value)} />
+                                                {filetype && filetype.startsWith("image") &&
+                                                    <>
+                                                        {captionLoading ? <CircularProgress /> :
+                                                            <IconButton onClick={generateCaption}><AutoAwesomeIcon /></IconButton>
+                                                        }
+                                                    </>
+                                                }
+                                                <IconButton variant='contained' color='secondary' disabled={!tempCaption} onClick={sendCaption}><SendIcon /></IconButton>
+                                            </Stack>
+                                        }
                                     </TableCell>
                                 </TableRow>
                             }
@@ -340,16 +435,24 @@ const MediaDetails = ({ triggerSnackbar }) => {
                                 <TableCell>Segment Type</TableCell>
                                 <TableCell>{segmenttype.join(" + ")}</TableCell>
                             </TableRow>}
-                            {category && <TableRow>
+                            {segmenttype.length > 0 && <TableRow>
                                 <TableCell>Category</TableCell>
-                                <TableCell>{category}</TableCell>
+                                <TableCell>
+                                    {category ?
+                                        category :
+                                        <Stack spacing={2} direction="row" justifyContent="center" alignItems="center">
+                                            <TextField sx={{ width: '8vw' }} onChange={(e) => setTempCategory(e.target.value)} />
+                                            <IconButton variant='contained' color='secondary' disabled={!tempCategory} onClick={sendCategory}><SendIcon /></IconButton>
+                                        </Stack>
+                                    }
+                                </TableCell>
                             </TableRow>}
                             {segmentOf.length > 0 && <TableRow>
                                 <TableCell style={{ verticalAlign: 'top' }}>Segment of</TableCell>
                                 <TableCell>
                                     {segmentOf.map((s) => (
                                         <Box sx={{ cursor: 'pointer' }} onClick={() => selectOf(s)}>
-                                            <FileDisplay  isPreview filedata={s} filetype={"image"} />
+                                            <FileDisplay isPreview filedata={s} filetype={"image"} />
                                         </Box>
                                     ))}
                                 </TableCell>
@@ -398,13 +501,6 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     </Table>
                 </TableContainer>
             </Stack>
-            <SegmentDialog
-                triggerSnackbar={triggerSnackbar}
-                url={url}
-                open={open}
-                onClose={() => setOpen(false)}
-                filetype={filetype}
-            />
         </>
     )
 
@@ -414,26 +510,30 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 Media Details
             </div>
             <div className="App-content">
-                {loading && <CircularProgress />}
-                {filename && filetype &&
+                {intersectLoading ? <CircularProgress /> :
                     <>
-                        {filetype.startsWith("image") ?
-                            <ImageSegmentDetails
-                                triggerSnackbar={triggerSnackbar}
-                                objectId={objectId}
-                                setLoading={setLoading}
-                                details={details}
-                            />
-                            :
-                            <MediaSegmentDetails
-                                triggerSnackbar={triggerSnackbar}
-                                objectId={objectId}
-                                loading={loading}
-                                setLoading={setLoading}
-                                filetype={filetype}
-                                filename={filename}
-                                details={details}
-                            />
+                        {loading && <CircularProgress />}
+                        {filename && filetype &&
+                            <>
+                                {filetype.startsWith("image") ?
+                                    <ImageSegmentDetails
+                                        triggerSnackbar={triggerSnackbar}
+                                        objectId={objectId}
+                                        setLoading={setLoading}
+                                        details={details}
+                                    />
+                                    :
+                                    <MediaSegmentDetails
+                                        triggerSnackbar={triggerSnackbar}
+                                        objectId={objectId}
+                                        loading={loading}
+                                        setLoading={setLoading}
+                                        filetype={filetype}
+                                        filename={filename}
+                                        details={details}
+                                    />
+                                }
+                            </>
                         }
                     </>
                 }
