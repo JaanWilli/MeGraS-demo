@@ -2,6 +2,8 @@ import { Box, Button, CircularProgress, Grid, IconButton, Paper, Stack, TextFiel
 import React from 'react';
 import { Image, Layer, Rect, Stage, Transformer } from 'react-konva';
 import useImage from 'use-image';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { a11yLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { BACKEND_ERR, PREDICTOR_ERR } from './Errors';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -102,6 +104,8 @@ const CollageEditor = ({ triggerSnackbar }) => {
     const [query, setQuery] = React.useState();
     const [loading, setLoading] = React.useState(false);
 
+    const [svgText, setSvgText] = React.useState()
+
     const stageref = React.useRef();
     const backgroundRef = React.useRef();
 
@@ -129,6 +133,32 @@ const CollageEditor = ({ triggerSnackbar }) => {
         fetchMedia()
         return () => { }
     }, [])
+
+    React.useEffect(() => {
+        let svgtext = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">\n`
+        svgtext += '\t<rect height="100%" width="100%" fill="white" xmlns="http://www.w3.org/1999/xhtml"/>\n'
+
+        let children = stageref.current.children[0].children
+        for (let child of children) {
+            if (child.attrs.image) {
+                let img = {
+                    height: child.attrs.height ? child.attrs.height : child.attrs.image.height,
+                    width: child.attrs.width ? child.attrs.width : child.attrs.image.width,
+                    x: child.attrs.x,
+                    y: child.attrs.y,
+                    rotation: child.attrs.rotation,
+                    url: child.attrs.url
+                }
+                svgtext += `\t<image x="${Math.round(img.x)}" y="${Math.round(img.y)}" width="${Math.round(img.width)}" height="${Math.round(img.height)}" href="${img.url}" preserveAspectRatio="none"`
+                if (img.rotation !== 0) {
+                    svgtext += ` transform="rotate(${img.rotation} ${img.x} ${img.y})"`
+                }
+                svgtext += '/>\n'
+            }
+        }
+        svgtext += '</svg>'
+        setSvgText(svgtext)
+    }, [elements])
 
     const applyDimensions = () => {
         setWidth(tempWidth)
@@ -361,7 +391,6 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                     <IconButton color='secondary' disabled={tempWidth == 0 || tempHeight == 0} onClick={applyDimensions}><CheckIcon /></IconButton>
                                 </Stack>
                                 <Stack direction="row" spacing={2}>
-
                                     <Stage ref={stageref} width={width} height={height} onMouseDown={checkDeselect}
                                         onTouchStart={checkDeselect}>
                                         <Layer>
@@ -411,14 +440,21 @@ const CollageEditor = ({ triggerSnackbar }) => {
                                                 <IconButton disabled={selectedId == null} onClick={() => moveElement(false)}><ArrowDropDownIcon /></IconButton>
                                             </Tooltip>
                                         </Stack>
-                                        <Stack spacing={2}>
-                                            <Tooltip title="Download as SVG" placement="right">
-                                                <Button variant="contained" disabled={selectedId != null} onClick={toSVG}><DownloadIcon /></Button>
-                                            </Tooltip>
-                                            <Tooltip title="Save" placement="right">
-                                                <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={saveImage}><SaveIcon /></Button>
-                                            </Tooltip>
-                                        </Stack>
+                                        <Tooltip title="Save" placement="right">
+                                            <Button variant="contained" color='secondary' disabled={selectedId != null} onClick={saveImage}><SaveIcon /></Button>
+                                        </Tooltip>
+                                    </Stack>
+                                </Stack>
+                                <Stack direction="row" spacing={2}>
+                                    <Box component={Paper} fontSize={14} maxWidth={width} textAlign="start" >
+                                        <SyntaxHighlighter language="html" style={a11yLight} wrapLines>
+                                            {svgText}
+                                        </SyntaxHighlighter>
+                                    </Box>
+                                    <Stack direction="column" spacing={2} justifyContent="flex-end">
+                                        <Tooltip title="Download as SVG" placement="right">
+                                            <Button variant="contained" disabled={selectedId != null} onClick={toSVG}><DownloadIcon /></Button>
+                                        </Tooltip>
                                     </Stack>
                                 </Stack>
                             </Stack>
