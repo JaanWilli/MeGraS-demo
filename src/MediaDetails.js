@@ -58,7 +58,6 @@ const MediaDetails = ({ triggerSnackbar }) => {
 
             let c = []
             let segType = []
-            let segOf = []
             let embed = null
             let bounds = []
             data.results.forEach((res) => {
@@ -78,8 +77,6 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     segType.push(res.o.replace("^^String", ""))
                 } else if (res.p === "<https://schema.org/category>") {
                     setCategory(res.o.replace("^^String", ""))
-                } else if (res.p === "<http://megras.org/schema#segmentOf>") {
-                    segOf.push(res.o.replace("<", "").replace(">", ""))
                 } else if (res.p === "<http://megras.org/schema#categoryVector>" ||
                     res.p === "<http://megras.org/schema#captionVector>") {
                     embed = res.o.replace("[", "").replace("]^^DoubleVector", "").split(",")
@@ -89,11 +86,27 @@ const MediaDetails = ({ triggerSnackbar }) => {
             })
             setCaptions(c)
             setSegmentType(segType)
-            setSegmentOf(segOf)
 
             let isSegment = objectId.includes("/c/")
             if (isSegment) {
+                // find segmentOf of segment
                 let options = {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        "seeds": ["<" + BACKEND_URL + "/" + objectId + ">"],
+                        "predicates": ["<http://megras.org/schema#segmentOf>"],
+                        "maxDepth": 5
+                      })
+                }
+                let response = await fetch(BACKEND_URL + "/query/path", options)
+                    .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
+                if (response == undefined) return
+                let data = await response.json()
+                let segOf = data.results.map((r) => r.o.replace("<", "").replace(">", ""))
+                setSegmentOf([...new Set(segOf)])
+
+                // find filetype and filename of segment
+                options = {
                     method: 'POST',
                     body: JSON.stringify({
                         "s": ["<" + BACKEND_URL + "/" + objectId.slice(0, objectId.indexOf("/")) + ">"],
@@ -101,10 +114,11 @@ const MediaDetails = ({ triggerSnackbar }) => {
                         "o": []
                     })
                 }
-                let response = await fetch(BACKEND_URL + "/query/quads", options)
+
+                response = await fetch(BACKEND_URL + "/query/quads", options)
                     .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
                 if (response == undefined) return
-                let data = await response.json()
+                data = await response.json()
                 data.results.forEach((res) => {
                     if (res.p === "<http://megras.org/schema#canonicalMimeType>") {
                         setFiletype(res.o.replace("^^String", ""))
