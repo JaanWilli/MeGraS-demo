@@ -26,20 +26,23 @@ const MediaDetails = ({ triggerSnackbar }) => {
     const [filetype, setFiletype] = React.useState()
     const [dimensions, setDimensions] = React.useState()
     const [segmenttype, setSegmentType] = React.useState([])
+    const [segmentDefinition, setSegmentDefinition] = React.useState([])
     const [segmentOf, setSegmentOf] = React.useState([])
     const [captions, setCaptions] = React.useState([])
     const [category, setCategory] = React.useState()
     const [intersectable, setIntersectable] = React.useState([])
+    const [unionable, setUnionable] = React.useState([])
     const [similar, setSimilar] = React.useState([])
 
     const [tempCategory, setTempCategory] = React.useState()
     const [tempCaption, setTempCaption] = React.useState()
     const [captionLoading, setCaptionLoading] = React.useState(false)
-    const [intersectLoading, setIntersectLoading] = React.useState(false);
+    const [combinationLoading, setCombinationLoading] = React.useState(false);
 
     const [segments, setSegments] = React.useState([])
 
     const [selectIntersect, setSelectIntersect] = React.useState();
+    const [selectUnion, setSelectUnion] = React.useState();
 
     React.useEffect(() => {
         async function fetchMedia() {
@@ -58,6 +61,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
 
             let c = []
             let segType = []
+            let segDef = []
             let embed = null
             let bounds = []
             data.results.forEach((res) => {
@@ -75,6 +79,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     setDimensions(dim.join(" x "))
                 } else if (res.p === "<http://megras.org/schema#segmentType>") {
                     segType.push(res.o.replace("^^String", ""))
+                } else if (res.p === "<http://megras.org/schema#segmentDefinition>") {
+                    segDef.push(res.o.replace("^^String", ""))
                 } else if (res.p === "<https://schema.org/category>") {
                     setCategory(res.o.replace("^^String", ""))
                 } else if (res.p === "<http://megras.org/schema#categoryVector>" ||
@@ -85,6 +91,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 }
             })
             setCaptions(c)
+            setSegmentDefinition(segDef)
             setSegmentType(segType)
 
             let isSegment = objectId.includes("/c/")
@@ -96,7 +103,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                         "seeds": ["<" + BACKEND_URL + "/" + objectId + ">"],
                         "predicates": ["<http://megras.org/schema#segmentOf>"],
                         "maxDepth": 5
-                      })
+                    })
                 }
                 let response = await fetch(BACKEND_URL + "/query/path", options)
                     .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
@@ -139,6 +146,8 @@ const MediaDetails = ({ triggerSnackbar }) => {
                     .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
                 if (response == undefined) return
                 data = await response.json()
+                let sisterSegments = data.results.map(r => r.s)
+                setUnionable(sisterSegments.filter(s => s != "<" + BACKEND_URL + "/" + objectId + ">"))
                 let intersect = []
                 for (const res of data.results) {
                     if (res.s !== "<" + BACKEND_URL + "/" + objectId + ">") {
@@ -154,13 +163,17 @@ const MediaDetails = ({ triggerSnackbar }) => {
                             .catch(() => triggerSnackbar(BACKEND_ERR, "error"))
                         if (response == undefined) return
                         data = await response.json()
-                        let otherbound = data.results[0].o.replace("^^String", "").split(",").map(b => Number(b))
+                        let other = data.results[0].o.replace("^^String", "").split(",").map(b => Number(b))
                         let valid = true
-                        for (let i = 0; i < otherbound.length; i++) {
-                            if (!isNaN(bounds[i]) && !isNaN(otherbound[i])) {
+                        for (let i = 0; i < other.length; i++) {
+                            if (!isNaN(bounds[i]) && !isNaN(other[i])) {
                                 valid = false
                             }
                         }
+                        valid = valid || (!isNaN(bounds[0]) && !isNaN(other[0]) && bounds[0] <= other[1] && bounds[1] >= other[0]) ||
+                        (!isNaN(bounds[2]) && !isNaN(other[2]) && bounds[2] <= other[3] && bounds[3] >= other[2]) ||
+                        (!isNaN(bounds[4]) && !isNaN(other[4]) && bounds[4] <= other[5] && bounds[5] >= other[4]) ||
+                        (!isNaN(bounds[6]) && !isNaN(other[6]) && bounds[6] <= other[7] && bounds[7] >= other[6])
                         if (valid) {
                             intersect.push(res.s)
                         }
@@ -338,11 +351,20 @@ const MediaDetails = ({ triggerSnackbar }) => {
         }
     }
 
-    const intersectWith = async () => {
+    const selectToUnion = (segment) => {
+        if (selectUnion === segment) {
+            setSelectUnion()
+        } else {
+            setSelectUnion(segment)
+        }
+    }
+
+    const combineWith = async (operation) => {
+        let keyword = operation === "union" ? "or" : "and"
         let options = {
             method: 'POST',
             body: JSON.stringify({
-                "s": [selectIntersect],
+                "s": [operation === "union" ? selectUnion : selectIntersect],
                 "p": ["<http://megras.org/schema#segmentType>", "<http://megras.org/schema#segmentDefinition>"],
                 "o": []
             })
@@ -361,12 +383,11 @@ const MediaDetails = ({ triggerSnackbar }) => {
             }
         })
 
-        let url = BACKEND_URL + "/" + objectId + "/segment/" + type + "/" + definition
-        console.log(url)
-        setIntersectLoading(true)
+        let url = segmentOf[segmentOf.length-1] + "/segment/" + segmenttype[0] + "/" + segmentDefinition[0] + "/" + keyword + "/" + type + "/" + definition
+        setCombinationLoading(true)
         response = await fetch(url).catch(() => triggerSnackbar(BACKEND_ERR, "error"))
         if (response.ok) {
-            setIntersectLoading(false)
+            setCombinationLoading(false)
             navigate(response.url.replace(BACKEND_URL, ""))
         }
     }
@@ -495,7 +516,23 @@ const MediaDetails = ({ triggerSnackbar }) => {
                                                 <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
                                             </Box>
                                         ))}
-                                        <Button variant='contained' color='secondary' disabled={!selectIntersect} onClick={intersectWith}>Confirm</Button>
+                                        <Button variant='contained' color='secondary' disabled={!selectIntersect} onClick={() => combineWith("intersection")}>Confirm</Button>
+                                    </Stack>
+                                </TableCell>
+                            </TableRow>}
+                            {unionable.length > 0 && <TableRow>
+                                <TableCell style={{ verticalAlign: 'top' }}>Union with</TableCell>
+                                <TableCell>
+                                    <Stack direction="column" spacing={1}>
+                                        {unionable.map((s) => (
+                                            <Box
+                                                sx={{ cursor: 'pointer', border: s === selectUnion ? '4px solid red' : '4px solid transparent' }}
+                                                onClick={() => selectToUnion(s)}
+                                            >
+                                                <FileDisplay isPreview filedata={s.replace("<", "").replace(">", "")} filetype={"image"} />
+                                            </Box>
+                                        ))}
+                                        <Button variant='contained' color='secondary' disabled={!selectUnion} onClick={() => combineWith("union")}>Confirm</Button>
                                     </Stack>
                                 </TableCell>
                             </TableRow>}
@@ -524,7 +561,7 @@ const MediaDetails = ({ triggerSnackbar }) => {
                 Media Details
             </div>
             <div className="App-content">
-                {intersectLoading ? <CircularProgress /> :
+                {combinationLoading ? <CircularProgress /> :
                     <>
                         {loading && <CircularProgress />}
                         {filename && filetype &&
