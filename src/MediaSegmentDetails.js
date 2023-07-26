@@ -58,7 +58,6 @@ const MediaSegmentDetails = (props) => {
             <FileDisplay
                 filedata={BACKEND_URL + "/" + objectId}
                 filetype={filetype}
-                filename={filename}
             />
             <br />
             {!loading && details}

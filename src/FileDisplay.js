@@ -12,7 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url,
 ).toString();
 
-const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
+const FileDisplay = ({ filetype, filedata, isPreview = false }) => {
 
     const [numPages, setNumPages] = React.useState(null);
     const [pageNumber, setPageNumber] = React.useState(1);
@@ -53,7 +53,7 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
                 src={filedata}
                 controls
             />
-        } else if (filename.endsWith(".obj")) {
+        } else if (filetype === "model/obj") {
             return (
                 <Box height={500} width={500}>
                     <OBJModel src={filedata} />
@@ -70,7 +70,7 @@ const FileDisplay = ({ filetype, filedata, filename, isPreview = false }) => {
                 src={filedata + "/preview"}
                 style={{ objectFit: 'scale-down' }}
             />
-        } else if (filename.endsWith(".obj")) {
+        } else if (filetype === "model/obj") {
             return (
                 <Box height={500} width={500}>
                     <OBJModel src={filedata} />

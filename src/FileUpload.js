@@ -61,7 +61,7 @@ const ImageUpload = ({ triggerSnackbar }) => {
                         {file ?
                             <Stack spacing={2} direction="column" alignItems="center">
                                 <Box>{file.name}</Box>
-                                <FileDisplay filetype={filetype} filedata={filedata} filename={file.name} />
+                                <FileDisplay filetype={filetype} filedata={filedata} />
                                 <Stack spacing={2} mt={2} direction="row">
                                     <Button variant='contained' onClick={cancel}>Cancel</Button>
                                     <Button variant='contained' color='secondary' onClick={confirm}>Confirm</Button>
