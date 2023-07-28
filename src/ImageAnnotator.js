@@ -197,11 +197,11 @@ function ImageAnnotator({ triggerSnackbar, id }) {
                                 <Stack spacing={2} direction="column">
                                     <ReactSketchCanvas
                                         ref={canvas}
-                                        style={{ position: 'relative' }}
+                                        style={{ position: 'relative', background: `url(${imageUrl})` }}
                                         width={width}
                                         height={height}
                                         strokeColor='white'
-                                        backgroundImage={imageUrl}
+                                        backgroundImage={'none'} // see https://github.com/vinothpandian/react-sketch-canvas/issues/58
                                         strokeWidth={brushRadius}
                                     />
                                 </Stack>
